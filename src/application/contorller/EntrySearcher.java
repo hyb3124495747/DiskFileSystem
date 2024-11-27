@@ -5,6 +5,9 @@ import application.entity.Entry;
 
 import java.util.Arrays;
 
+/**
+ * 检索文件或目录登记项
+ */
 public class EntrySearcher {
     private final DiskManager diskManager;
 

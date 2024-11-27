@@ -1,5 +1,6 @@
 package application.Manager;
 
+import java.io.*;
 import java.util.Arrays;
 import java.util.Random;
 
@@ -16,66 +17,90 @@ public class DiskManager {
     public static final int ROOT_DIR_START = 2; // 根目录磁盘号为2
     public static final int USER_AREA_START = 5; // 用户区域起始块号，0到4号磁盘包括了FAT（0、1）、根目录项、系统文件区
 
-    private static byte[] disk = null; // 模拟磁盘的存储区域
+    private static final File diskFile = new File("disk.dat"); // 磁盘文件
+    private byte[] FAT; //内存中的FAT表
 
     /**
      * 初始化磁盘和文件分配表
      */
     public DiskManager() {
-        disk = new byte[DISK_SIZE * BLOCK_SIZE]; // 初始化磁盘
-        formatDisk();
-    }
-
-    /**
-     * 通过文件分配表格式化磁盘
-     */
-    private void formatDisk() {
-        // 在可用区域填充0格式化
-        Arrays.fill(disk, USER_AREA_START * BLOCK_SIZE, DISK_SIZE * BLOCK_SIZE, (byte) 0);
-
-        // 从磁盘获取FAT
-        byte[] FAT = getFAT();
-        // 初始化FAT
-        for (int i = 0; i < USER_AREA_START; i++)
-            FAT[i] = END_OF_FILE;
-        for (int i = USER_AREA_START; i < DISK_SIZE; i++) {
-            FAT[i] = FREE;
-        }
-        // 将FAT写回磁盘
-        setFAT(FAT);
-
-        // 初始化根目录项（根目录只占一个磁盘块）
-        for (int i = DISK_SIZE; i < DISK_SIZE + BLOCK_SIZE; i++) {
-            if (i % 8 == 0)
-                disk[i] = EMPTY_DIR_ENTRY;
-            else
-                disk[i] = (byte) 0;
+        // 检查磁盘文件是否存在，如果不存在则创建
+        if (!diskFile.exists()) {
+            boolean res = false;
+            try {
+                res = diskFile.createNewFile();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            if (!res) {
+                throw new RuntimeException("创建文件失败");
+            }
+            // 格式化磁盘
+            formatDisk();
+            // 保存当前FAT在内存中
+            this.FAT = readFAT();
         }
     }
 
     /**
-     * 获取模拟磁盘的存储区域
-     *
-     * @return 磁盘存储区域的字节数组
+     * 格式化磁盘
      */
-    public byte[] getDisk() {
-        return disk;
+    public void formatDisk() {
+        // 在磁盘文件开头写入FAT和根目录项
+        try (FileOutputStream fos = new FileOutputStream(diskFile)) {
+
+            // 初始化FAT
+            for (int i = 0; i < DISK_SIZE; i++) {
+                // 设置FAT中表示的各磁盘块的状态
+                fos.write((i < USER_AREA_START) ? END_OF_FILE : FREE);
+            }
+
+            // 初始化根目录项
+            byte[] rootDirBlock = new byte[BLOCK_SIZE];
+            Arrays.fill(rootDirBlock, (byte) 0);
+            for (int i = 0; i < BLOCK_SIZE; i += 8) {
+                rootDirBlock[i] = EMPTY_DIR_ENTRY;
+            }
+            fos.write(rootDirBlock, ROOT_DIR_START * BLOCK_SIZE, BLOCK_SIZE);
+
+            // 初始化其余磁盘存储
+            for (int i = USER_AREA_START * BLOCK_SIZE; i < DISK_SIZE * BLOCK_SIZE; i++) {
+                fos.write(0);
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     /**
-     * 从模拟磁盘前两块中获取文件分配表 (FAT)
+     * 从磁盘读取FAT
      *
      * @return 文件分配表的字节数组
      */
-    public byte[] getFAT() {
-        return new byte[]{disk[DISK_SIZE]};
+    private byte[] readFAT() {
+        byte[] FAT = new byte[DISK_SIZE];
+        try (FileInputStream fis = new FileInputStream(diskFile)) {
+            // 读取文件
+            if (fis.read(FAT) != -1) {
+                return FAT;
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        throw new RuntimeException("读取FAT失败");
     }
 
     /**
-     * 把FAT写回磁盘
+     * 将FAT写回磁盘
+     *
+     * @param FAT 文件分配表的字节数组
      */
-    private void setFAT(byte[] FAT) {
-        System.arraycopy(FAT, 0, disk, 0, FAT.length);
+    private void writeFAT(byte[] FAT) throws IOException {
+        try (FileOutputStream fos = new FileOutputStream(diskFile)) {
+            fos.write(FAT);
+            // 更新内存中的FAT
+            this.FAT = readFAT();
+        }
     }
 
     /**
@@ -84,12 +109,14 @@ public class DiskManager {
      * @param index 磁盘块索引
      * @param data  要写入的数据
      */
-    public void setBlock(int index, byte[] data) {
-        if (index >= 0 && index < DISK_SIZE && data.length == BLOCK_SIZE) {
-            // 将数据写入对应磁盘块
-            System.arraycopy(data, 0, disk, index * BLOCK_SIZE, BLOCK_SIZE);
+    public void setBlock(int index, byte[] data) throws IOException {
+        if (index >= USER_AREA_START && index < DISK_SIZE) {
+            try (RandomAccessFile raf = new RandomAccessFile(diskFile, "rw")) {
+                raf.seek((long) index * BLOCK_SIZE);
+                raf.write(data);
+            }
         } else {
-            throw new IllegalArgumentException("Invalid block index or data size");
+            throw new IllegalArgumentException("Invalid block index");
         }
     }
 
@@ -100,39 +127,47 @@ public class DiskManager {
      * @return 读取的数据
      */
     public byte[] readBlock(int index) {
-        if (index >= 0 && index < DISK_SIZE) {
-            byte[] data = new byte[BLOCK_SIZE];
-            System.arraycopy(disk, index * BLOCK_SIZE, data, 0, BLOCK_SIZE);
-            return data;
-        } else {
-            throw new IllegalArgumentException("Invalid block index");
+        try (RandomAccessFile raf = new RandomAccessFile(diskFile, "rw")) {
+            // 检查索引是否合法
+            if (index >= USER_AREA_START && index < DISK_SIZE) {
+                byte[] data = new byte[BLOCK_SIZE];
+                raf.skipBytes(index * BLOCK_SIZE);
+                raf.read(data);
+                return data;
+            } else {
+                throw new IllegalArgumentException("Invalid block index");
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 
     /**
-     * 设置文件分配表的条目
+     * 设置FAT的条目
      *
      * @param index 文件分配表的索引
      * @param value 要设置的值
      */
-    public void setFatEntry(int index, byte value) {
-        byte[] FAT = getFAT();
+    public void setFatEntry(int index, byte value) throws IOException {
+        byte[] FAT = readFAT();
         if (index >= 0 && index < DISK_SIZE) {
             FAT[index] = value;
-            setFAT(FAT);
+            writeFAT(FAT);
+            // 更新内存中的FAT
+            this.FAT = readFAT();
         } else {
             throw new IllegalArgumentException("Invalid FAT index");
         }
     }
 
     /**
-     * 获取文件分配表的条目
+     * 获取FAT的条目
      *
      * @param index 文件分配表的索引
      * @return 文件分配表的条目值
      */
     public byte getFatEntry(int index) {
-        byte[] FAT = getFAT();
+        byte[] FAT = this.FAT;
         if (index >= 0 && index < DISK_SIZE) {
             return FAT[index];
         } else {
@@ -145,12 +180,14 @@ public class DiskManager {
      *
      * @return 分配的磁盘块索引，如果没有空闲块则返回-1
      */
-    public int allocateBlock() {
-        byte[] FAT = getFAT();
+    public int allocateBlock() throws IOException {
+        byte[] FAT = readFAT();
         for (int i = USER_AREA_START; i < DISK_SIZE; i++) { // 从用户区域开始查找
             if (FAT[i] == FREE) {
                 FAT[i] = END_OF_FILE; // 标记为文件结束
-                setFAT(FAT);
+                writeFAT(FAT);
+                // 更新内存中的FAT
+                this.FAT = readFAT();
                 return i;
             }
         }
@@ -162,11 +199,13 @@ public class DiskManager {
      *
      * @param blockIndex 要回收的磁盘块索引
      */
-    public void deallocateBlock(int blockIndex) {
-        byte[] FAT = getFAT();
+    public void deallocateBlock(int blockIndex) throws IOException {
+        byte[] FAT = readFAT();
         if (blockIndex >= USER_AREA_START && blockIndex < DISK_SIZE) { // 系统区域块不回收
             FAT[blockIndex] = FREE;
-            setFAT(FAT);
+            writeFAT(FAT);
+            // 更新内存中的FAT
+            this.FAT = readFAT();
         } else {
             throw new IllegalArgumentException("Invalid block index for deallocation");
         }
@@ -179,7 +218,7 @@ public class DiskManager {
      * @return 如果磁盘块空闲返回true，否则返回false
      */
     public boolean isBlockFree(int blockIndex) {
-        byte[] FAT = getFAT();
+        byte[] FAT = this.FAT;
         return FAT[blockIndex] == FREE;
     }
 
@@ -190,7 +229,7 @@ public class DiskManager {
      * @return 如果磁盘块是坏块返回true，否则返回false
      */
     public boolean isBlockBad(int blockIndex) {
-        byte[] FAT = getFAT();
+        byte[] FAT = this.FAT;
         return FAT[blockIndex] == BAD_BLOCK;
     }
 
@@ -201,14 +240,14 @@ public class DiskManager {
      * @return 如果磁盘块已被分配返回true，否则返回false
      */
     public boolean isBlockAllocated(int blockIndex) {
-        byte[] FAT = getFAT();
+        byte[] FAT = this.FAT;
         return FAT[blockIndex] != FREE && FAT[blockIndex] != BAD_BLOCK;
     }
 
     /**
      * 随机损坏一个非系统区磁盘块
      */
-    public void crippleBlock() {
+    public void crippleBlock() throws IOException {
         Random rand = new Random();
         int blockIndex;
 
@@ -229,7 +268,7 @@ public class DiskManager {
     /**
      * 修复所有损坏的非系统区磁盘块
      */
-    public void fixDisk() {
+    public void fixDisk() throws IOException {
         for (int i = USER_AREA_START; i < DISK_SIZE; i++) {
             // 检查磁盘块是否为坏块
             if (isBlockBad(i)) {
@@ -237,5 +276,9 @@ public class DiskManager {
                 setFatEntry(i, FREE);
             }
         }
+    }
+
+    public byte[] getFAT() {
+        return FAT;
     }
 }

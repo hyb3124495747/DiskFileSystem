@@ -2,6 +2,7 @@ package application; /**
  * JavaFX 界面主类
  */
 import application.Manager.DiskManager;
+import application.Manager.FileSystem;
 import javafx.application.Application;
 import javafx.scene.Scene;
 import javafx.scene.control.*;

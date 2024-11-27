@@ -1,6 +1,5 @@
-package application;
+package application.Manager;
 
-import application.Manager.DiskManager;
 import application.entity.File;
 
 /**
