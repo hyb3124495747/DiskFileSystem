@@ -1,6 +1,7 @@
 package application; /**
  * JavaFX 界面主类
  */
+import application.Enum.EntryAttribute;
 import application.Manager.DiskManager;
 import application.Manager.FileSystem;
 import javafx.application.Application;
@@ -38,11 +39,11 @@ public class Main extends Application {
         dialog.setHeaderText("Enter file name:");
         dialog.showAndWait().ifPresent(fileName -> {
             // 调用文件系统的 createFile 方法
-            boolean success = fileSystem.createFile(fileName, (byte) 1, (byte) 2);
-            if (success) {
+            int success = fileSystem.createFile(fileName, EntryAttribute.NORMAL_FILE.getValue());
+            if (success==1) {
                 showAlert("application.entity.File created successfully!");
             } else {
-                showAlert("application.entity.File creation failed!");
+                showAlert("application.entity.File creation failed!"+"Error code: " + success);
             }
         });
     }

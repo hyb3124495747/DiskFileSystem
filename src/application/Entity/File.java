@@ -1,4 +1,4 @@
-package application.entity;
+package application.Entity;
 
 /**
  * 文件类
