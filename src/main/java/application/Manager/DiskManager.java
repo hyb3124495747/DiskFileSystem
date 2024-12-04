@@ -3,7 +3,9 @@ package application.Manager;
 import application.Enum.BlockStatus;
 
 import java.io.*;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Random;
 
 
@@ -39,6 +41,23 @@ public class DiskManager {
             System.out.print((char) entry[0]+" ");
         }
         System.out.println();
+    }
+
+    public List<Boolean> disk_status(){
+        List<Boolean> list = new ArrayList<>();
+        try (FileInputStream fis = new FileInputStream(diskFile)) {
+            for (int i = 0; i < DISK_SIZE; i++) {
+                int read = fis.read();
+                if (read == 255){
+                    list.add(true);
+                } else if (read == 0) {
+                    list.add(false);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return list;
     }
 
     /**

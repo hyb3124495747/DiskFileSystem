@@ -8,10 +8,12 @@ import application.Service.FileDirOperator;
  */
 public class FileSystem {
     private final FileDirOperator fileDirOperator;
+
     // 文件目录操作类
 
     public FileSystem(DiskManager diskManager) {
         fileDirOperator = new FileDirOperator(diskManager);
+        diskManager.debug_printDisk();
     }
 
      /**
