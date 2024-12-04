@@ -35,9 +35,7 @@ public class FileDirOperator {
         if (nameAndType == null) {
             return -5;
         }
-
-        System.out.println(new String(nameAndType));
-
+        // 分离文件名和类型
         byte[] fileNameBytes = new byte[EntryStructure.NAME_LENGTH.getValue()];
         byte[] fileType = new byte[EntryStructure.TYPE_LENGTH.getValue()];
         System.arraycopy(nameAndType, 0, fileNameBytes, 0, fileNameBytes.length);
@@ -117,7 +115,9 @@ public class FileDirOperator {
         } else {
             String[] nwt = nameWithType.split("\\.");
             if(nwt.length==1){
-                return null; // 没有拓展名
+                // 没有拓展名则增加nwt[1]并默认为tx
+                String[] tmp = {nwt[0], "tx"};
+                nwt = tmp;
             }
             if (nwt[0].length() > 3 || nwt[1].length() > 2) {
                 return null; // 超出限定字节

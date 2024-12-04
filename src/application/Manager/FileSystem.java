@@ -22,6 +22,7 @@ public class FileSystem {
      * @return 1:成功； 0:只读属性无法创建； -1:父目录不存在； -2:文件已存在； -3:无空闲磁盘块；-4：根目录已满；-5:文件名不合法
      */
     public int createFile(String fileNameAndType, byte attribute) {
+
         int result = fileDirOperator.create_file(fileNameAndType, attribute);
         return result;
     }
