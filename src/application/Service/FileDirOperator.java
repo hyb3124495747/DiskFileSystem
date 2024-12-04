@@ -32,14 +32,14 @@ public class FileDirOperator {
     public int create_file(String fileNameAndType, byte attribute) {
         // 检查文件名（含type）
         byte[] nameAndType = checkNameAndType(fileNameAndType, EntryAttribute.DIRECTORY.isEqual(attribute));
+        if (nameAndType == null) {
+            return -5;
+        }
 
         System.out.println(new String(nameAndType));
 
         byte[] fileNameBytes = new byte[EntryStructure.NAME_LENGTH.getValue()];
         byte[] fileType = new byte[EntryStructure.TYPE_LENGTH.getValue()];
-        if (nameAndType == null) {
-            return -5;
-        }
         System.arraycopy(nameAndType, 0, fileNameBytes, 0, fileNameBytes.length);
         System.arraycopy(nameAndType, fileNameBytes.length, fileType, 0, fileType.length);
 
@@ -116,6 +116,9 @@ public class FileDirOperator {
             System.arraycopy(nameWithType.getBytes(), 0, bytes, 0, nameWithType.getBytes().length);
         } else {
             String[] nwt = nameWithType.split("\\.");
+            if(nwt.length==1){
+                return null; // 没有拓展名
+            }
             if (nwt[0].length() > 3 || nwt[1].length() > 2) {
                 return null; // 超出限定字节
             }
