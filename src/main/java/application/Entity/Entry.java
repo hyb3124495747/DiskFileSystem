@@ -3,7 +3,7 @@ package application.Entity;
 import application.Enum.EntryAttribute;
 
 /**
- * 文件/目录登记项
+ * 文件/目录目录项
  */
 public class Entry {
     private byte[] name;        // 文件名 / 目录名
@@ -13,7 +13,7 @@ public class Entry {
     private byte diskBlockLength; // 文件长度(盘块数) / 目录未使用，填充0
 
     /**
-     * 用于创建目录登记项的构造函数
+     * 用于创建目录项的构造函数
      *
      * @param name
      * @param attribute
@@ -32,7 +32,7 @@ public class Entry {
     }
 
     /**
-     * 用于创建文件登记项的构造函数
+     * 用于创建文件目录项的构造函数
      *
      * @param name
      * @param type

@@ -16,7 +16,7 @@ public class DiskManager {
 
     public static final int DISK_SIZE = 128; // 128 个磁盘块
     public static final int BLOCK_SIZE = 64; // 每个磁盘块64字节
-    public static final int ROOT_DIR_START = 2; // 根目录磁盘号为2
+    public static final int ROOT_DIR_POS = 2; // 根目录磁盘号为2
     public static final int USER_AREA_START = 5; // 用户区域起始块号，0到4号磁盘包括了FAT（0、1）、根目录项、系统文件区
 
     private static final File diskFile = new File("disk.dat"); // 磁盘文件
@@ -25,7 +25,7 @@ public class DiskManager {
     public void debug_printDisk() {
         try (FileInputStream fis = new FileInputStream(diskFile)) {
             for (int i = 0; i < DISK_SIZE; i++) {
-                System.out.print(fis.read() + "\t");
+                System.out.print((byte)fis.read() + "\t");
                 if ((i + 1) % 16 == 0)
                     System.out.println();
             }
@@ -35,7 +35,7 @@ public class DiskManager {
     }
 
     public void debug_rootDir() {
-        byte[] rootDirBlock=readBlock(ROOT_DIR_START);
+        byte[] rootDirBlock=readBlock(ROOT_DIR_POS);
         for (int i = 0; i < BLOCK_SIZE; i += 8) {
             byte[] entry = Arrays.copyOfRange(rootDirBlock, i, i + 8);
             System.out.print((char) entry[0]+" ");
@@ -184,7 +184,7 @@ public class DiskManager {
     public byte[] readBlock(int index) {
         try (RandomAccessFile raf = new RandomAccessFile(diskFile, "rw")) {
             // 检查索引是否合法
-            if (index == ROOT_DIR_START||index >= USER_AREA_START && index < DISK_SIZE) {
+            if (index == ROOT_DIR_POS ||index >= USER_AREA_START && index < DISK_SIZE) {
                 byte[] data = new byte[BLOCK_SIZE];
                 raf.skipBytes(index * BLOCK_SIZE);
                 raf.read(data);

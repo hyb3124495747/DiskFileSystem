@@ -1,7 +1,7 @@
 package application.Enum;
 
 /**
- * 登记项属性枚举
+ * 目录项属性枚举
  */
 public enum EntryAttribute {
     READ_ONLY((byte) 0x01), // 第0位 只读

@@ -6,137 +6,211 @@ import application.Enum.EntryStructure;
 import application.Manager.DiskManager;
 import application.Entity.Entry;
 
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 
 /**
- * 检索文件或目录登记项
+ * 目录项操作项，使用到读写缓冲，为文件操作类和目录操作类提供接口
  */
 public class EntryOperator {
     private final DiskManager diskManager; // 磁盘管理器
-    private final int entrySize = 8; // 每个目录项的大小
+    private final int entrySize; // 每个目录项的大小
 
     private byte[] readBuffer; // 读缓冲
     private byte[] writeBuffer; // 写缓冲
 
     public EntryOperator(DiskManager diskManager) {
         this.diskManager = diskManager;
+        this.entrySize = EntryStructure.ENTRY_LENGTH.getValue();
         this.readBuffer = new byte[DiskManager.BLOCK_SIZE];
         this.writeBuffer = new byte[DiskManager.BLOCK_SIZE];
     }
 
     /**
-     * 在磁盘管理器中查找目录的盘块号（要改，还没支持任意长目录）
+     * 分配一个新的磁盘块
      *
-     * @param parentDirName 父目录名
-     * @return 找到的目录项的起始盘块号
+     * @return 分配的磁盘块索引，如果没有空闲块则返回 -1
      */
-    public int findDirBlockIndex(String parentDirName) {
+    public int allocateDiskBlock() throws Exception {
+        return diskManager.allocateBlock();
+    }
+
+    /**
+     * 释放磁盘块
+     *
+     * @param blockIndex 要释放的磁盘块索引
+     */
+    public void deallocateBlock(int blockIndex) {
+        try {
+            diskManager.deallocateBlock(blockIndex);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    /**
+     * 使用读缓冲区读取指定磁盘块的内容
+     *
+     * @param blockIndex 磁盘块索引
+     * @return 读取结果
+     */
+    public byte[] getContentFromBlock(int blockIndex) {
+        this.readBuffer = diskManager.readBlock(blockIndex);
+        byte[] data = new byte[DiskManager.BLOCK_SIZE];
+        System.arraycopy(this.readBuffer, 0, data, 0, DiskManager.BLOCK_SIZE);
+        return data;
+    }
+
+
+    /**
+     * 使用写缓冲区将内容写入该文件占有的磁盘块
+     *
+     * @param blockIndex 磁盘块索引
+     * @param data       要写入的数据
+     */
+    public void setContentToEntry(int blockIndex, byte[] data) throws Exception {
+        // 确保数据长度不超过磁盘块大小
+        if (data.length > DiskManager.BLOCK_SIZE) {
+            throw new IllegalArgumentException("Data exceeds block size.");
+        }
+
+        // 读取磁盘块的当前内容到写缓冲区
+        this.readBuffer = getContentFromBlock(blockIndex);
+        System.arraycopy(this.readBuffer, 0, this.writeBuffer, 0, DiskManager.BLOCK_SIZE);
+
+        // 将新数据写入写缓冲区的起始位置
+        System.arraycopy(data, 0, writeBuffer, 0, data.length);
+
+        // 将写缓冲区的内容写回磁盘块
+        diskManager.writeBlock(blockIndex, writeBuffer);
+    }
+
+    /**
+     * 在磁盘管理器中查找目录的盘块号（已经存在的），支持任意长
+     *
+     * @param dirName 目录名
+     * @return 找到的目录盘块号
+     */
+    public int findDirBlockIndex(String dirName) throws Exception {
         // 从根目录开始查找
-        int currentBlockIndex = DiskManager.ROOT_DIR_START; // 假设根目录起始盘块号是常量
+        int currentBlockIndex = DiskManager.ROOT_DIR_POS;
 
         // 按路径分割父目录名
-        String[] dirComponents = parentDirName.split("/");
+        String[] dirComponents = dirName.split("/");
 
         // 遍历父目录路径的每个部分
-        for (String dirName : dirComponents) {
-            if (dirName.isEmpty()) continue; // 跳过空字符串，如路径以 '/' 开头
-
-            // 读取当前目录块的数据
-            byte[] dirBlockData = diskManager.readBlock(currentBlockIndex);
-            int entryIndex = -1; // 初始化为 -1，表示未找到
+        for (String eachName : dirComponents) {
+            if (eachName.isEmpty()) continue; // 跳过空字符串，如路径以 '/' 开头
 
             // 遍历目录块中的每个目录项
-            for (int j = 0; j < DiskManager.BLOCK_SIZE / this.entrySize; j++) {
-                int offset = j * this.entrySize; // 目录项的偏移量
-                byte[] entryNameBytes = Arrays.copyOfRange(dirBlockData, offset + EntryStructure.NAME_POS.getValue(), offset + EntryStructure.NAME_END.getValue());
-                byte[] entryTypeBytes = Arrays.copyOfRange(dirBlockData, offset + EntryStructure.TYPE_POS.getValue(), offset + EntryStructure.TYPE_END.getValue());
+            while (currentBlockIndex != BlockStatus.END_OF_FILE.getValue()) {
+                // 读取当前目录块的数据
+                byte[] dirBlockData = getContentFromBlock(currentBlockIndex);
+                int entryIndex = -1; // 初始化为 -1，表示未找到
 
-                // 构造目录项的文件名
-                String entryName = new String(entryNameBytes) + "." + new String(entryTypeBytes);
-                if (entryName.equals(dirName)) {
-                    entryIndex = j; // 找到匹配的目录项，记录索引
-                    currentBlockIndex = dirBlockData[offset + EntryStructure.START_NUM_POS.getValue()]; // 获取路径中下一个目录的块号
-                    break;
-                }
-            }
+                for (int j = 0; j < DiskManager.BLOCK_SIZE / this.entrySize; j++) {
+                    int offset = j * this.entrySize; // 目录项的偏移量
+                    byte[] entryNameBytes = Arrays.copyOfRange(dirBlockData, offset + EntryStructure.NAME_POS.getValue(), offset + EntryStructure.NAME_END.getValue());
 
-            if (entryIndex == -1) { // 如果未找到目录项且该目录已经找完，返回 -1
-                if (diskManager.getFatEntry(currentBlockIndex) == BlockStatus.END_OF_FILE.getValue()) {
-                    return -1;
+                    // 构造目录项的文件名
+                    String entryName = new String(entryNameBytes); // + "." + new String(entryTypeBytes);
+                    if (entryName.trim().equals(eachName)) {
+                        entryIndex = j; // 找到匹配的目录项，记录索引
+                        currentBlockIndex = dirBlockData[offset + EntryStructure.START_NUM_POS.getValue()];
+                        break;
+                    }
                 }
-                else { // 否则，查找后续目录块号
-                    currentBlockIndex = diskManager.getFatEntry(currentBlockIndex);
-                }
+                if (entryIndex == -1) currentBlockIndex = diskManager.getFatEntry(currentBlockIndex);
+                else break;
             }
         }
         return currentBlockIndex;
     }
 
     /**
-     * 在目录中查找特定文件的目录项
+     * 在目录中查找特定文件的目录项（已经存在的目录项），支持任意长
      *
      * @param dirBlockIndex   目录盘块号
      * @param fileNameAndType 文件名（含Type）
+     * @param attribute       文件属性
      * @return 找到的Entry对象，如果没有找到则返回null
      */
-    public Entry findEntryInDirectory(int dirBlockIndex, String fileNameAndType) {
-        byte[] dirBlockData = diskManager.readBlock(dirBlockIndex);
+    public Entry findEntryInDirectory(int dirBlockIndex, String fileNameAndType, byte attribute) throws Exception {
+        // 读取
+        byte[] dirBlockData = getContentFromBlock(dirBlockIndex);
+
+        // 遍历目录块中的每个目录项
         for (int i = 0; i < DiskManager.BLOCK_SIZE; i += this.entrySize) {
             byte[] entry = Arrays.copyOfRange(dirBlockData, i, i + this.entrySize);
             // 跳过空目录项
-            if (entry[0]==BlockStatus.EMPTY_ENTRY.getValue()){
-                continue;
-            }
-            // 完整文件名为name + type
-            String entryName = new String(new byte[]{entry[0], entry[1], entry[2]}) + "." + new String(new byte[]{entry[3], entry[4]});
+            if (entry[0] == BlockStatus.EMPTY_ENTRY.getValue()) continue;
+
+            // 目录没有type，完整文件名为name + type
+            String entryName = "";
+            if (EntryAttribute.DIRECTORY.isEqual(entry[EntryStructure.ATTRIBUTE_POS.getValue()]))
+                entryName = new String(new byte[]{entry[0], entry[1], entry[2]}).trim();
+            else
+                entryName = new String(new byte[]{entry[0], entry[1], entry[2]}).trim() + "." + new String(new byte[]{entry[3], entry[4]}).trim();
+
 //            System.out.print("entryName: " + entryName);
 //            System.out.println(" and  "+fileNameAndType);
 
+            // 比较
             if (entryName.equals(fileNameAndType)) {
                 byte[] entryNameBytes = new byte[]{entry[0], entry[1], entry[2]};
                 byte[] entryTypeBytes = new byte[2];
                 entryTypeBytes[0] = entry[3];
                 entryTypeBytes[1] = entry[4];
-                return new Entry(entryNameBytes, entryTypeBytes, entry[5], entry[6], entry[7]);
+                if (EntryAttribute.DIRECTORY.isEqual(attribute))
+                    return new Entry(entryNameBytes, entry[5], entry[6]);
+                else
+                    return new Entry(entryNameBytes, entryTypeBytes, entry[5], entry[6], entry[7]);
             }
         }
-        return null; // 未找到
+
+        // 如果未找到目录项且该目录已经找完，返回 null
+        if (diskManager.getFatEntry(dirBlockIndex) == BlockStatus.END_OF_FILE.getValue())
+            return null;
+
+            // 否则，获取记录该目录的下一个磁盘块号，查找后续目录块号
+        else {
+            dirBlockIndex = diskManager.getFatEntry(dirBlockIndex);
+            return findEntryInDirectory(dirBlockIndex, fileNameAndType, attribute);
+        }
     }
 
     /**
-     * 将新登记项添加到目录
+     * 将新目录项添加到目录
      *
      * @param dirBlockIndex 目录盘块号
-     * @param newEntry      新登记项
+     * @param newEntry      新目录项
      */
-    public void addEntryToDirectory(int dirBlockIndex, int freeEntryIndex, Entry newEntry) {
-        // 记录新登记项数据
-        byte[] newEntryData = new byte[this.entrySize];
-        System.arraycopy(newEntry.getName(), 0, newEntryData, EntryStructure.NAME_POS.getValue(), EntryStructure.NAME_LENGTH.getValue());
-        System.arraycopy(newEntry.getType(), 0, newEntryData, EntryStructure.TYPE_POS.getValue(), EntryStructure.TYPE_LENGTH.getValue());
-        newEntryData[EntryStructure.ATTRIBUTE_POS.getValue()] = newEntry.getAttribute(); // 文件属性
-        newEntryData[EntryStructure.START_NUM_POS.getValue()] = newEntry.getStartNum(); // 起始盘块号
-        newEntryData[EntryStructure.DISK_BLOCK_LENGTH_POS.getValue()] = newEntry.getDiskBlockLength(); // 长度
-
-        // 获取目录项磁盘块的原数据
-        this.readBuffer = diskManager.readBlock(dirBlockIndex);
-        System.arraycopy(this.readBuffer, 0, this.writeBuffer, 0, DiskManager.BLOCK_SIZE);
+    public void addEntryToDirectory(int dirBlockIndex, int freeEntryIndex, Entry newEntry) throws Exception {
+        // 读取目录项磁盘块的原数据到写缓冲
+        this.writeBuffer = getContentFromBlock(dirBlockIndex);
 
         // 把需要登记的数据写到写缓冲区对应freeEntryIndex的位置
         int entryOffset = freeEntryIndex * this.entrySize;
-        System.arraycopy(newEntryData, 0, this.writeBuffer, entryOffset, newEntryData.length);
-        diskManager.writeBlock(dirBlockIndex, this.writeBuffer); // 将更新后的数据写回磁盘
+        System.arraycopy(newEntry.getName(), 0, this.writeBuffer, entryOffset + EntryStructure.NAME_POS.getValue(), EntryStructure.NAME_LENGTH.getValue());
+        System.arraycopy(newEntry.getType(), 0, this.writeBuffer, entryOffset + EntryStructure.TYPE_POS.getValue(), EntryStructure.TYPE_LENGTH.getValue());
+        this.writeBuffer[entryOffset + EntryStructure.ATTRIBUTE_POS.getValue()] = newEntry.getAttribute(); // 文件属性
+        this.writeBuffer[entryOffset + EntryStructure.START_NUM_POS.getValue()] = newEntry.getStartNum(); // 起始盘块号
+        this.writeBuffer[entryOffset + EntryStructure.DISK_BLOCK_LENGTH_POS.getValue()] = newEntry.getDiskBlockLength(); // 长度
+
+        // 将更新后的数据写回磁盘
+        diskManager.writeBlock(dirBlockIndex, this.writeBuffer);
     }
 
     /**
-     * 寻找空闲目录项
+     * 寻找第一个空闲目录项
      *
      * @param curDirBlockIndex 当前目录盘块号
      * @return 找到的父目录磁盘块号和空闲目录项的索引；如果是根目录没有空闲项，则返回0，0； 如果是没有多余的磁盘块来分配，则返回-1，-1
      */
-    public int[] findFreeEntry(int curDirBlockIndex) {
-        // 读缓冲区读取目录盘块的数据
-        byte[] dirBlockData = diskManager.readBlock(curDirBlockIndex);
+    public int[] findFreeEntry(int curDirBlockIndex) throws Exception {
+        // 读取目录盘块的数据
+        byte[] dirBlockData = getContentFromBlock(curDirBlockIndex);
 
         // 遍历目录项以找到第一个空闲项
         for (int index = 0; index < DiskManager.BLOCK_SIZE / this.entrySize; index++) {
@@ -150,7 +224,7 @@ public class EntryOperator {
         }
 
         // 如果是根目录,则不支持另外分配磁盘块来存储新目录项
-        if (curDirBlockIndex == DiskManager.ROOT_DIR_START) {
+        if (curDirBlockIndex == DiskManager.ROOT_DIR_POS) {
             return new int[]{0, 0};
         }
 
@@ -175,4 +249,111 @@ public class EntryOperator {
             return findFreeEntry(diskManager.getFatEntry(curDirBlockIndex));
         }
     }
+
+    /**
+     * 获取指定目录下所有的登记项
+     *
+     * @param dirName 目录名（路径）
+     * @return 目录内容的 Entry 数组
+     */
+    public Entry[] listDir(String dirName) throws Exception {
+        int dirBlockIndex = findDirBlockIndex(dirName);
+        if (dirBlockIndex == -1) return null; // 目录不存在
+
+        ArrayList<Entry> entriesList = new ArrayList<>();
+        int currentBlockIndex = dirBlockIndex;
+
+        // 循环处理每个磁盘块，直到没有后续块
+        while (currentBlockIndex != BlockStatus.END_OF_FILE.getValue()) {
+            byte[] dirBlockData = getContentFromBlock(currentBlockIndex);
+            // 遍历该磁盘块下的所有登记项
+            for (int i = 0; i < DiskManager.BLOCK_SIZE; i += EntryStructure.ENTRY_LENGTH.getValue()) {
+                // 取得磁盘块内容
+                byte[] entry = Arrays.copyOfRange(dirBlockData, i, i + EntryStructure.ENTRY_LENGTH.getValue());
+                if (entry[0] != BlockStatus.EMPTY_ENTRY.getValue()) {
+                    // 获取各项信息
+                    byte[] name = Arrays.copyOfRange(entry, EntryStructure.NAME_POS.getValue(), EntryStructure.NAME_END.getValue());
+                    byte[] type = Arrays.copyOfRange(entry, EntryStructure.TYPE_POS.getValue(), EntryStructure.TYPE_END.getValue());
+                    byte attribute = entry[EntryStructure.ATTRIBUTE_POS.getValue()];
+                    byte startNum = entry[EntryStructure.START_NUM_POS.getValue()];
+                    byte diskBlockLength = entry[EntryStructure.DISK_BLOCK_LENGTH_POS.getValue()];
+
+                    // 构建登记项对象，并加入到list
+                    Entry newEntry = null;
+                    if (EntryAttribute.DIRECTORY.isEqual(attribute))
+                        newEntry = new Entry(name, attribute, startNum);
+                    else
+                        newEntry = new Entry(name, type, attribute, startNum, diskBlockLength);
+                    entriesList.add(newEntry);
+                }
+            }
+            // 获取下一个磁盘块号
+            currentBlockIndex = diskManager.getFatEntry(currentBlockIndex);
+        }
+        // 返回登记项数组
+        return entriesList.toArray(new Entry[0]);
+    }
+
+
+    /**
+     * 删除登记项以及其占用的磁盘块，到时还要判断一下是否为文件
+     *
+     * @param name                要删除的登记项名称
+     * @param parentDirBlockIndex 父目录盘块号
+     * @param dirBlockIndex       要删除的登记项所在盘块号
+     */
+    public void dealEntry(String name, int parentDirBlockIndex, int dirBlockIndex) throws Exception {
+        //从父目录中删除目录项
+        byte[] dirBlockData = getContentFromBlock(parentDirBlockIndex);
+        int entryIndex = -1; // 初始化为-1，表示未找到
+        for (int i = 0; i < DiskManager.BLOCK_SIZE; i += EntryStructure.ENTRY_LENGTH.getValue()) {
+            byte[] entry = Arrays.copyOfRange(dirBlockData, i, i + EntryStructure.ENTRY_LENGTH.getValue());
+            if (new String(entry, 0, 3).trim().equals(name)) {
+                entryIndex = i / EntryStructure.ENTRY_LENGTH.getValue(); // 计算目录项索引
+                break;
+            }
+        }
+
+        if (entryIndex != -1) {
+            // 删除目录项
+            System.arraycopy(new byte[]{BlockStatus.EMPTY_ENTRY.getValue()}, 0, dirBlockData, entryIndex * EntryStructure.ENTRY_LENGTH.getValue(), 1);
+            setContentToEntry(parentDirBlockIndex, dirBlockData);
+
+            // 回收磁盘块
+            while (diskManager.getFatEntry(dirBlockIndex) != BlockStatus.END_OF_FILE.getValue()) {
+                int nextBlockIndex = diskManager.getFatEntry(dirBlockIndex);
+                diskManager.setFatEntry(dirBlockIndex, BlockStatus.FREE.getValue());
+                dirBlockIndex = nextBlockIndex;
+            }
+        } else {
+            // 其实是不会到这里的，因为删除目录项的时候，已经判断了该登记项是否存在
+            System.out.println("Entry not found: " + name);
+        }
+    }
+
+    /**
+     * 获取登记项的起始盘块号
+     *
+     * @param name      文件名
+     * @param attribute 属性
+     * @return 登记项的起始盘块号
+     */
+    public int getEntryStartNum(int parentDirBlockIndex,String name, byte attribute) throws Exception {
+        //获取父目录的盘块号
+        Entry entry = findEntryInDirectory(parentDirBlockIndex, name, attribute);
+        // 找不到目录项就会返回-1
+        if (entry == null) return -1;
+        else return entry.getStartNum();
+    }
+
+    /**
+     * 获取下一个盘块号
+     *
+     * @param currentBlockIndex 当前盘块号
+     * @return 下一个
+     */
+    public int getNextBlockIndex(int currentBlockIndex) {
+        return diskManager.getFatEntry(currentBlockIndex);
+    }
 }
+

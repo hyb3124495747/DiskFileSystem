@@ -17,6 +17,7 @@
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
         <module name="disk-file-system" />
+        <module name="DISKFILESYSTEM" />
       </profile>
     </annotationProcessing>
   </component>
