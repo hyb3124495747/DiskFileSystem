@@ -1,7 +1,7 @@
 package application;
 
 import application.Enum.EntryAttribute;
-import application.Manager.FileSystem;
+import application.Service.FileSystem;
 
 import java.io.File;
 
@@ -29,7 +29,7 @@ public class Test {
     //测试用例5，删除文件夹/abc/
     private static void test5(FileSystem fileSystem) {
         try {
-            int res = fileSystem.removeDir("/abc");
+            String res = fileSystem.removeDir("/abc");
             System.out.println(res);
             fileSystem.debug_rootDir();
         } catch (Exception e) {
@@ -67,7 +67,7 @@ public class Test {
     // 测试用例3，删除目录
     private static void test3(FileSystem fileSystem) {
         try {
-            int res = fileSystem.removeDir("/2");
+            String res = fileSystem.removeDir("/2");
             System.out.println(res);
         } catch (Exception e) {
             e.printStackTrace();

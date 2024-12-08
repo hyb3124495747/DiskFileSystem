@@ -1,5 +1,6 @@
 package application.Service;
 
+
 import application.Enum.EntryStructure;
 
 import java.io.BufferedWriter;
@@ -56,9 +57,20 @@ public class Tools {
 
     /**
      * 检查结果
+     * 操作错误码
+     * 1:成功；
+     * 0:只读属性无法创建文件；
+     * -1:路径不存在；
+     * -2:文件已存在；
+     * -3:无空闲磁盘块；
+     * -4：根目录已满；
+     * -5:文件名不合法；
+     * -6：文件已打开；
+     * -7：目录非空
+     * -8: 根目录无法删除
      *
      * @param result 需要判断的结果
-     * @return 1:成功； 0:只读属性无法创建文件； -1:路径不存在； -2:文件已存在； -3:无空闲磁盘块；-4：根目录已满；-5:文件名不合法
+     * @return 结果码对应的错误信息
      */
     public static String checkResult(int result) {
         switch (result) {
@@ -76,6 +88,12 @@ public class Tools {
                 return "ERROR: Root directory is full.";
             case -5:
                 return "ERROR: Name is invalid.";
+            case -6:
+                return "ERROR: File already opened.";
+            case -7:
+                return "ERROR: Directory is not empty.";
+            case -8:
+                return "ERROR: Root directory cannot be deleted.";
             default:
                 return "ERROR: Unknown error occurred.";
         }
