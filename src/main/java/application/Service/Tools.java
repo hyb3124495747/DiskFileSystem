@@ -26,7 +26,7 @@ public class Tools {
             if (nameWithType.length() > 3) { //超三字节
                 return null;
             }
-            if (nameWithType.contains("$") || nameWithType.contains(".") || nameWithType.contains("\\") || nameWithType.contains("/")) {
+            if (nameWithType.contains("$") || nameWithType.contains(".") || nameWithType.contains("\\")) {
                 return null; // 含有非法字符
             }
             System.arraycopy(nameWithType.getBytes(), 0, name, 0, nameWithType.getBytes().length);
@@ -63,7 +63,7 @@ public class Tools {
     public static String checkResult(int result) {
         switch (result) {
             case 1:
-                return null;
+                return "1";
             case 0:
                 return "ERROR: Cannot create file with read-only attribute.";
             case -1:

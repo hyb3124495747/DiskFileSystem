@@ -11,19 +11,19 @@ public class Test {
         FileSystem fileSystem = new FileSystem();
         System.out.println("test1----------------------------------");
         test1(fileSystem);
-        System.out.println("test2----------------------------------");
-        test2(fileSystem);
-        System.out.println("test3----------------------------------");
-        test3(fileSystem);
-        System.out.println("test2----------------------------------");
-        test2(fileSystem);
-        System.out.println("test4----------------------------------");
-        test4(fileSystem);
-        System.out.println("test2----------------------------------");
-        test2(fileSystem);
-        System.out.println("test5----------------------------------");
-        test5(fileSystem);
-        System.out.println("----------------------------------");
+//        System.out.println("test2----------------------------------");
+//        test2(fileSystem);
+//        System.out.println("test3----------------------------------");
+//        test3(fileSystem);
+//        System.out.println("test2----------------------------------");
+//        test2(fileSystem);
+//        System.out.println("test4----------------------------------");
+//        test4(fileSystem);
+//        System.out.println("test2----------------------------------");
+//        test2(fileSystem);
+//        System.out.println("test5----------------------------------");
+//        test5(fileSystem);
+//        System.out.println("----------------------------------");
     }
 
     //测试用例5，删除文件夹/abc/
@@ -99,7 +99,7 @@ public class Test {
     }
 
     private static void start_test() {
-        String filePath = "D:\\code\\Java\\OS\\DiskFileSystem\\disk.dat";
+        String filePath = "D:\\code\\czxt\\disk-file-system\\disk.dat";
         File file = new File(filePath);
 
         // 检查文件是否存在并且可以删除

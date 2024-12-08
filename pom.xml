@@ -25,7 +25,7 @@
                     <archive>
                         <manifest>
                             <addClasspath>true</addClasspath>
-                            <mainClass>SocketServer</mainClass> <!-- 此处为主入口-->
+                            <mainClass>application.Main</mainClass> <!-- 此处为主入口-->
                         </manifest>
                     </archive>
                 </configuration>

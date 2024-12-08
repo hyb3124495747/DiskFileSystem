@@ -6,7 +6,6 @@ import application.Enum.EntryAttribute;
 import application.Enum.EntryStructure;
 import application.Manager.DiskManager;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 
 /**
@@ -90,6 +89,9 @@ public class DirOperator {
      * @return 目录内容的 Entry 数组
      */
     public String[][] listDir(String dirName) throws Exception {
+
+        System.out.println(dirName);
+
         // 获取目录内容
         Entry[] entries = this.entryOperator.listDir(dirName);
         if (entries == null) {

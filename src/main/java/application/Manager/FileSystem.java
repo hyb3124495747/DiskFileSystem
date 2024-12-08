@@ -1,6 +1,5 @@
 package application.Manager;
 
-import application.Entity.Entry;
 import application.Service.DirOperator;
 import application.Service.EntryOperator;
 import application.Service.FileOperator;

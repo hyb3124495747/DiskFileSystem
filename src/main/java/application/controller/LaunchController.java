@@ -1,12 +1,15 @@
 package application.controller;
 
+import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
+import javafx.geometry.Rectangle2D;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
-import javafx.stage.Stage;
 import javafx.stage.Modality;
+import javafx.stage.Screen;
+import javafx.stage.Stage;
 
 /**
  * 模拟磁盘(界面交互)
@@ -87,18 +90,40 @@ public class LaunchController {
     }
     
     // 添加鼠标悬停效果
+    @FXML
     public void initialize() {
-        setupButtonHoverEffect(diskButton);
-        setupButtonHoverEffect(statusButton);
+        Platform.runLater(() -> {
+            // 获取窗口并设置标题
+            Stage stage = (Stage) diskButton.getScene().getWindow();
+            stage.setTitle("文件系统管理器");
+            
+            // 固定窗口大小
+            stage.setResizable(false);
+            
+            // 设置窗口在屏幕中央
+            Rectangle2D screenBounds = Screen.getPrimary().getVisualBounds();
+            stage.setX((screenBounds.getWidth() - stage.getWidth()) / 2);
+            stage.setY((screenBounds.getHeight() - stage.getHeight()) / 2);
+        });
+        
+        // 添加按钮悬停效果
+        setupButtonHoverEffects(diskButton);
+        setupButtonHoverEffects(statusButton);
     }
 
-    // 鼠标移开后的效果
-    private void setupButtonHoverEffect(Button button) {
-        button.setOnMouseEntered(e -> 
-            button.setStyle("-fx-background-color: #f5f5f5; -fx-background-radius: 5;"));
+    // 右键菜单
+    private void setupButtonHoverEffects(Button button) {
+        button.setOnMouseEntered(e -> {
+            button.setStyle(button.getStyle() + 
+                "-fx-background-color: #f8f9fa;" +
+                "-fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.15), 15, 0, 0, 0);");
+        });
         
-        button.setOnMouseExited(e -> 
-            button.setStyle("-fx-background-color: transparent;"));
+        button.setOnMouseExited(e -> {
+            button.setStyle(button.getStyle() +
+                "-fx-background-color: white;" +
+                "-fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 10, 0, 0, 0);");
+        });
     }
 
     // 添加获取DiskStatusController的方法
