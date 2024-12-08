@@ -1,10 +1,7 @@
-package application.Manager;
+package application.Service;
 
-import application.Entity.Entry;
-import application.Service.DirOperator;
-import application.Service.EntryOperator;
-import application.Service.FileOperator;
-import application.Service.Tools;
+import application.Manager.DiskManager;
+import application.Manager.OFTableManager;
 
 import java.io.BufferedWriter;
 import java.io.FileWriter;
