@@ -6,7 +6,6 @@ import application.Enum.EntryAttribute;
 import application.Enum.EntryStructure;
 import application.Manager.DiskManager;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 
 /**
@@ -25,16 +24,16 @@ public class DirOperator {
     /**
      * 创建新目录
      *
-     * @param dirName   目录名（含路径）
+     * @param dirAbsolutePath   目录完整路径
      * @param attribute 目录属性
      * @return 1:成功；0:只读属性无法创建；-1:路径不存在；-2:目录已存在；-3:无空闲磁盘块；-4:根目录已满；-5:目录名不合法
      */
-    public int createDir(String dirName, byte attribute) throws Exception {
+    public int createDir(String dirAbsolutePath, byte attribute) throws Exception {
         // 解析目录路径，获取父目录盘块号，以检查父目录是否存在
-        String[] pathComponents = dirName.split("/");
+        String[] pathComponents = dirAbsolutePath.split("/");
         String parentDirName = String.join("/", Arrays.copyOfRange(pathComponents, 0, pathComponents.length - 1));
         int parentDirBlockIndex = this.entryOperator.findDirBlockIndex(parentDirName);
-        // System.out.println("parentName: " + parentDirName +"("+parentDirBlockIndex+")"+ ",and dirname: " + dirName);
+        // System.out.println("parentName: " + parentDirName +"("+parentDirBlockIndex+")"+ ",and dirname: " + dirAbsolutePath);
         if (parentDirBlockIndex == -1) {
             return -1;
         }
@@ -117,7 +116,7 @@ public class DirOperator {
      * 删除空目录
      *
      * @param dirName 目录名（含路径）
-     * @return 成功返回 1，路径不存在返回-1，非空目录返回 -6
+     * @return 成功返回 1，路径不存在返回-1，非空目录返回 -7，根目录返回 -8
      */
     public int removeDir(String dirName) throws Exception {
         //寻找父目录
@@ -130,9 +129,13 @@ public class DirOperator {
         if (startBlockIndex == -1) return -1; // 目录不存在
 
         // 判断非空目录或根目录
-        if (!isEmptyDir(startBlockIndex) || startBlockIndex == DiskManager.ROOT_DIR_POS) {
-            return -6;
+        if (!isEmptyDir(startBlockIndex)) {
+            return -7;
         }
+        if (startBlockIndex == DiskManager.ROOT_DIR_POS){
+            return -8;
+        }
+
         // 删除目录项并回收对应空间
         this.entryOperator.dealEntry(pathComponents[pathComponents.length - 1], parentDirBlockIndex, startBlockIndex);
         return 1; // 删除成功

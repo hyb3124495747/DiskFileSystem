@@ -62,6 +62,28 @@ public class EntryOperator {
         return data;
     }
 
+    /**
+     * 将登记项的所有内容一块一块的读取转换为字符串
+     *
+     * @param blockIndex 登记项起始盘块
+     * @return 内容字符串
+     */
+    public String getAllFromEntry(byte blockIndex) {
+        byte curBlockIndex = blockIndex;
+        StringBuilder sb = new StringBuilder();
+        while (curBlockIndex != BlockStatus.END_OF_FILE.getValue()) {
+            byte[] blockData = getContentFromBlock(curBlockIndex);
+            for (byte b : blockData) {
+                if (b == (byte) '#') {
+                    break;
+                }
+                sb.append((char) b);
+            }
+            curBlockIndex = diskManager.getFatEntry(curBlockIndex);
+        }
+        return sb.toString();
+    }
+
 
     /**
      * 使用写缓冲区将内容写入该文件占有的磁盘块
@@ -296,7 +318,7 @@ public class EntryOperator {
 
 
     /**
-     * 删除登记项以及其占用的磁盘块，到时还要判断一下是否为文件
+     * 删除登记项以及其占用的磁盘块
      *
      * @param name                要删除的登记项名称
      * @param parentDirBlockIndex 父目录盘块号
@@ -308,14 +330,20 @@ public class EntryOperator {
         int entryIndex = -1; // 初始化为-1，表示未找到
         for (int i = 0; i < DiskManager.BLOCK_SIZE; i += EntryStructure.ENTRY_LENGTH.getValue()) {
             byte[] entry = Arrays.copyOfRange(dirBlockData, i, i + EntryStructure.ENTRY_LENGTH.getValue());
-            if (new String(entry, 0, 3).trim().equals(name)) {
+
+            // 获取目录项名称,需要判断是目录还是文件
+            String judgeName = new String(entry, EntryStructure.NAME_POS.getValue(), EntryStructure.NAME_LENGTH.getValue()).trim();
+            if (!EntryAttribute.DIRECTORY.isEqual(entry[EntryStructure.ATTRIBUTE_POS.getValue()]))
+                judgeName = judgeName + new String(entry, EntryStructure.TYPE_POS.getValue(), EntryStructure.TYPE_LENGTH.getValue()).trim();
+
+            if (judgeName.equals(name)) {
                 entryIndex = i / EntryStructure.ENTRY_LENGTH.getValue(); // 计算目录项索引
                 break;
             }
         }
 
         if (entryIndex != -1) {
-            // 删除目录项
+            // 删除目录项，将其置为空闲
             System.arraycopy(new byte[]{BlockStatus.EMPTY_ENTRY.getValue()}, 0, dirBlockData, entryIndex * EntryStructure.ENTRY_LENGTH.getValue(), 1);
             setContentToEntry(parentDirBlockIndex, dirBlockData);
 
@@ -338,7 +366,7 @@ public class EntryOperator {
      * @param attribute 属性
      * @return 登记项的起始盘块号
      */
-    public int getEntryStartNum(int parentDirBlockIndex,String name, byte attribute) throws Exception {
+    public int getEntryStartNum(int parentDirBlockIndex, String name, byte attribute) throws Exception {
         //获取父目录的盘块号
         Entry entry = findEntryInDirectory(parentDirBlockIndex, name, attribute);
         // 找不到目录项就会返回-1
@@ -354,6 +382,44 @@ public class EntryOperator {
      */
     public int getNextBlockIndex(int currentBlockIndex) {
         return diskManager.getFatEntry(currentBlockIndex);
+    }
+
+    /**
+     * 设置登记项
+     *
+     * @param parentDirBlockIndex
+     * @param targetEntry
+     */
+    public void setEntryToDirectory(int parentDirBlockIndex, Entry targetEntry) throws Exception {
+        // 读取
+        byte[] dirBlockData = getContentFromBlock(parentDirBlockIndex);
+        String fileNameAndType = new String(targetEntry.getName()).trim() + new String(targetEntry.getType()).trim();
+
+        // 遍历目录块中的每个目录项
+        for (int entryOffset = 0; entryOffset < DiskManager.BLOCK_SIZE; entryOffset += this.entrySize) {
+            byte[] entry = Arrays.copyOfRange(dirBlockData, entryOffset, entryOffset + this.entrySize);
+            // 跳过空目录项
+            if (entry[0] == BlockStatus.EMPTY_ENTRY.getValue()) continue;
+
+            // 目录没有type，完整文件名为name + type
+            String entryName = "";
+            if (EntryAttribute.DIRECTORY.isEqual(entry[EntryStructure.ATTRIBUTE_POS.getValue()]))
+                entryName = new String(new byte[]{entry[0], entry[1], entry[2]}).trim();
+            else
+                entryName = new String(new byte[]{entry[0], entry[1], entry[2]}).trim() + "." + new String(new byte[]{entry[3], entry[4]}).trim();
+
+            if (entryName.equals(fileNameAndType)) {
+                System.arraycopy(targetEntry.getName(), 0, this.writeBuffer, entryOffset + EntryStructure.NAME_POS.getValue(), EntryStructure.NAME_LENGTH.getValue());
+                System.arraycopy(targetEntry.getType(), 0, this.writeBuffer, entryOffset + EntryStructure.TYPE_POS.getValue(), EntryStructure.TYPE_LENGTH.getValue());
+                this.writeBuffer[entryOffset + EntryStructure.ATTRIBUTE_POS.getValue()] = targetEntry.getAttribute(); // 文件属性
+                this.writeBuffer[entryOffset + EntryStructure.START_NUM_POS.getValue()] = targetEntry.getStartNum(); // 起始盘块号
+                this.writeBuffer[entryOffset + EntryStructure.DISK_BLOCK_LENGTH_POS.getValue()] = targetEntry.getDiskBlockLength(); // 长度
+
+                // 将更新后的数据写回磁盘
+                setContentToEntry(parentDirBlockIndex, this.writeBuffer);
+                break;
+            }
+        }
     }
 }
 

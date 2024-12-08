@@ -83,4 +83,8 @@ public class Entry {
     public boolean isNormalFile() {
         return EntryAttribute.NORMAL_FILE.isEqual(this.attribute);
     }
+
+    public void setAttribute(byte newAttribute) {
+        this.attribute = newAttribute;
+    }
 }
