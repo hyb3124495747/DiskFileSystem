@@ -83,6 +83,23 @@ public class FileSystem {// 目录项操作类
         }
     }
 
+     /**
+     * 关闭文件
+     *
+     * @param fileAbsolutePath 文件名（含路径）
+     * @return 关闭成功返回 1， 文件不存在返回 -1
+     */
+     public String closeFile(String fileAbsolutePath) {
+        try {
+            // 调用文件操作类关闭文件，并检查结果
+            int result = fileOperator.closeFile(fileAbsolutePath);
+            return Tools.checkResult(result);
+        } catch (Exception e) {
+            Tools.logError("Error closing file: " + e.getMessage(), this.LOG_FILE_NAME); //输出错误信息到日志文件
+            return "ERROR: Unknown error occurred.";
+        }
+    }
+
     /**
      * 删除文件
      *

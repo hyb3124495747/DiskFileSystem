@@ -111,15 +111,15 @@ public class EntryOperator {
     /**
      * 在磁盘管理器中查找目录的盘块号（已经存在的），支持任意长
      *
-     * @param dirName 目录名
+     * @param dirAbsolutePath 目录名
      * @return 找到的目录盘块号
      */
-    public int findDirBlockIndex(String dirName) throws Exception {
+    public int findDirBlockIndex(String dirAbsolutePath) throws Exception {
         // 从根目录开始查找
         int currentBlockIndex = DiskManager.ROOT_DIR_POS;
 
         // 按路径分割父目录名
-        String[] dirComponents = dirName.split("/");
+        String[] dirComponents = dirAbsolutePath.split("/");
 
         // 遍历父目录路径的每个部分
         for (String eachName : dirComponents) {

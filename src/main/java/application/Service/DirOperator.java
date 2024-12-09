@@ -85,15 +85,12 @@ public class DirOperator {
     /**
      * 显示目录内容
      *
-     * @param dirName 目录名（含路径）
+     * @param dirAbsolutePath 目录名（含路径）
      * @return 目录内容的 Entry 数组
      */
-    public String[][] listDir(String dirName) throws Exception {
-
-        System.out.println(dirName);
-
+    public String[][] listDir(String dirAbsolutePath) throws Exception {
         // 获取目录内容
-        Entry[] entries = this.entryOperator.listDir(dirName);
+        Entry[] entries = this.entryOperator.listDir(dirAbsolutePath);
         if (entries == null) {
             return null;
         }
@@ -118,12 +115,12 @@ public class DirOperator {
     /**
      * 删除空目录
      *
-     * @param dirName 目录名（含路径）
+     * @param dirAbsolutePath 目录名（含路径）
      * @return 成功返回 1，路径不存在返回-1，非空目录返回 -7，根目录返回 -8
      */
-    public int removeDir(String dirName) throws Exception {
+    public int removeDir(String dirAbsolutePath) throws Exception {
         //寻找父目录
-        String[] pathComponents = dirName.split("/");
+        String[] pathComponents = dirAbsolutePath.split("/");
         String parentDirName = String.join("/", Arrays.copyOfRange(pathComponents, 0, pathComponents.length - 1));
         int parentDirBlockIndex = this.entryOperator.findDirBlockIndex(parentDirName);
         if (parentDirBlockIndex == -1) return -1;
@@ -145,7 +142,7 @@ public class DirOperator {
     }
 
     /**
-     * 判断目录是否为空,任意长目录
+     * 判断目录是否为空
      *
      * @param dirBlockIndex 目录盘块号
      * @return
@@ -166,5 +163,11 @@ public class DirOperator {
             currentBlockIndex = this.entryOperator.getNextBlockIndex(currentBlockIndex);
         }
         return true;
+    }
+
+    //判断目录是否存在
+    public boolean isDirExist(String dirAbsolutePath) throws Exception{
+        int dirBlockIndex = this.entryOperator.findDirBlockIndex(dirAbsolutePath);
+        return dirBlockIndex != BlockStatus.END_OF_FILE.getValue();
     }
 }
