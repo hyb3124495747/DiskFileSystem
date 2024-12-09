@@ -38,9 +38,10 @@ public class FileOperator {
         }
 
         // 获取父目录盘块号和文件名，以检查父目录是否存在
-        String[] fileInfo = getFileInfo(fileAbsolutePath);
-        String fileNameOnly = fileInfo[0];
-        int parentDirBlockIndex = Integer.parseInt(fileInfo[1]);
+        String[] pathComponents = fileAbsolutePath.split("/");
+        String parentDirName = String.join("/", Arrays.copyOfRange(pathComponents, 0, pathComponents.length - 1));
+        String fileNameOnly = pathComponents[pathComponents.length - 1];
+        int parentDirBlockIndex = this.entryOperator.findDirBlockIndex(parentDirName);
         if (parentDirBlockIndex == -1) {
             return -1;
         }
@@ -180,55 +181,55 @@ public class FileOperator {
     }
 
 
-//    /**
-//     * 写入文件内容
-//     *
-//     * @param fileAbsolutePath 文件完整路径
-//     * @param writeData 存放准备写入磁盘信息的缓冲
-//     * @param writeLength 写长度
-//     * @return 写入成功返回 true，失败返回 false
-//     */
-//    public boolean writeFile(String fileAbsolutePath, byte[] writeData, int writeLength) throws Exception {
-//        // 获取父目录盘块号和文件名，以检查父目录是否存在
-//        String[] fileInfo = getFileInfo(fileAbsolutePath);
-//        String fileNameOnly = fileInfo[0];
-//        int parentDirBlockIndex = Integer.parseInt(fileInfo[1]);
-//        int entryStartNum = Integer.parseInt(fileInfo[2]);
-//
-//        // 检查文件是否已打开
-//        OFTLE ofTle = ofTableManager.find(entryStartNum);
-//        if (ofTle == null) {
-//            // 文件未打开，尝试以写方式打开文件
-//            int result = openFile(fileAbsolutePath, "w");
-//            if (result != 1) {
-//                return false; // 打开文件失败
-//            }
-//        }
-//        ofTle = ofTableManager.find(entryStartNum);
-//
-//        // 检查文件是否以写方式打开
-//        if (ofTle.getOperateFlag() != 1 && ofTle.getOperateFlag() != 2) {
-//            return false; // 文件未以写方式打开
-//        }
-//
-//        // 获取写指针
-//        Pointer writePointer = ofTle.getWrite();
-//        int writePointerDNum = writePointer.getDNum();
-//        int writePointerBNum = writePointer.getBNum();
-//
-//        // 写入文件内容
-//        while (writePointerBNum < writeLength) {
-//            int blockIndex = writePointerDNum;
-//            byte[] blockData = diskManager.readBlock(blockIndex);
-//            int bytesToWrite = Math.min(writeLength - writePointerBNum, blockData.length - writePointerBNum);
-//            System.arraycopy(writeData, writePointerBNum, blockData, writePointerBNum, bytesToWrite);
-//            diskManager.writeBlock(blockIndex, blockData);
-//            writePointerDNum++;
-//            writePointerBNum = 0;
-//        }
-//
-//        return true; // 写入成功
-//    }
+    /**
+     * 写入文件内容
+     *
+     * @param fileAbsolutePath 文件完整路径
+     * @param writeData 存放准备写入磁盘信息的缓冲
+     * @param writeLength 写长度
+     * @return 写入成功返回 true，失败返回 false
+     */
+    public boolean writeFile(String fileAbsolutePath, byte[] writeData, int writeLength) throws Exception {
+        // 获取父目录盘块号和文件名，以检查父目录是否存在
+        String[] fileInfo = getFileInfo(fileAbsolutePath);
+        String fileNameOnly = fileInfo[0];
+        int parentDirBlockIndex = Integer.parseInt(fileInfo[1]);
+        int entryStartNum = Integer.parseInt(fileInfo[2]);
+
+        // 检查文件是否已打开
+        OFTLE ofTle = ofTableManager.find(entryStartNum);
+        if (ofTle == null) {
+            // 文件未打开，尝试以写方式打开文件
+            int result = openFile(fileAbsolutePath, "w");
+            if (result != 1) {
+                return false; // 打开文件失败
+            }
+        }
+        ofTle = ofTableManager.find(entryStartNum);
+
+        // 检查文件是否以写方式打开
+        if (ofTle.getOperateFlag() != 1 && ofTle.getOperateFlag() != 2) {
+            return false; // 文件未以写方式打开
+        }
+
+        // 获取写指针
+        Pointer writePointer = ofTle.getWrite();
+        int writePointerDNum = writePointer.getdNum();
+        int writePointerBNum = writePointer.getbNum();
+
+        // 写入文件内容
+        while (writePointerBNum < writeLength) {
+            int blockIndex = writePointerDNum;
+            byte[] blockData = this.entryOperator.getContentFromBlock(blockIndex);
+            int bytesToWrite = Math.min(writeLength - writePointerBNum, blockData.length - writePointerBNum);
+            System.arraycopy(writeData, writePointerBNum, blockData, writePointerBNum, bytesToWrite);
+            this.entryOperator.setContentToEntry(blockIndex, blockData);
+            writePointerDNum++;
+            writePointerBNum = 0;
+        }
+
+        return true; // 写入成功
+    }
 
     /**
      * 关闭文件
