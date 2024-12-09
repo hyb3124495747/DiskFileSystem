@@ -21,11 +21,11 @@ public class OFTableManager {
      * 在已打开文件表中添加一个OFTLE项
      *
      * @param newOftle 要添加的OFTLE
-     * @return 1：成功添加，0：该oftle已存在于这个OpenFile表，-9：表已满
+     * @return 1：成功添加，-6：该oftle已存在于这个OpenFile表，-9：表已满
      */
     public int add(OFTLE newOftle) {
         if (this.oftleList.size() >= maxLength) return -9;
-        if (find(newOftle.getStartNum()) != null) return 0;
+        if (find(newOftle.getStartNum()) != null) return -6;
         else {
             oftleList.add(newOftle);
             return 1;
