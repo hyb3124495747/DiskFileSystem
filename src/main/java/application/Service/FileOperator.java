@@ -465,7 +465,7 @@ public class FileOperator {
 
         return new String[]{
                 fileNameOnly,
-                parentDirName,
+                String.valueOf(parentDirBlockIndex),
                 String.valueOf(fileEntry.getStartNum()),
                 String.valueOf(endNum),
                 String.valueOf(byteLength),

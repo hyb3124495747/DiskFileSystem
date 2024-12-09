@@ -53,7 +53,7 @@ public class FileSystem {// 目录项操作类
      *
      * @param fileAbsolutePath 文件完整路径
      * @param attribute        文件属性
-     * @return 信息
+     * @return 错误信息
      */
     public String createFile(String fileAbsolutePath, byte attribute) {
         try {
@@ -105,7 +105,7 @@ public class FileSystem {// 目录项操作类
      * 关闭文件
      *
      * @param fileAbsolutePath 文件名（含路径）
-     * @return 关闭成功返回 1， 文件不存在返回 -1
+     * @return 关闭成功返回 "1"
      */
     public String closeFile(String fileAbsolutePath) {
         try {
@@ -156,7 +156,7 @@ public class FileSystem {// 目录项操作类
      *
      * @param fileAbsolutePath 文件完整路径
      * @param newAttribute     新属性
-     * @return 成功返回null
+     * @return 成功返回"1"
      */
     public String changeFileAttribute(String fileAbsolutePath, byte newAttribute) {
         try {
@@ -174,7 +174,7 @@ public class FileSystem {// 目录项操作类
      *
      * @param fileAbsolutePath 文件完整路径
      * @param newNameAndType   新的文件名
-     * @return 成功返回null
+     * @return 成功返回"1"
      */
     public String changeFileName(String fileAbsolutePath, String newNameAndType) {
         try {
@@ -267,7 +267,7 @@ public class FileSystem {// 目录项操作类
      * 进入任意目录
      *
      * @param dirAbsolutePath 目录完整路径
-     * @return 进入成功返回 null，失败返回错误信息
+     * @return 进入成功返回 "1"，失败返回错误信息
      */
     public String enterAnyDir(String dirAbsolutePath) {
         String[] pathComponents = dirAbsolutePath.split("/");

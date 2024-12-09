@@ -97,6 +97,9 @@ public class Test {
         String res3 = fileSystem.deleteFile("1.tx");
         System.out.println(res3);
 
+        fileSystem.createFile("1.tx", EntryAttribute.NORMAL_FILE.getValue());
+        String res4 =fileSystem.changeFileAttribute("1.tx", EntryAttribute.READ_ONLY.getValue());
+
         fileSystem.debug_printDisk();
         fileSystem.debug_rootDir();
     }
