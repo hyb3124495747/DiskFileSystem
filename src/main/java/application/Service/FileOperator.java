@@ -430,7 +430,7 @@ public class FileOperator {
      * 获取文件的各种信息
      *
      * @param fileAbsolutePath 文件绝对路径
-     * @return [0]文件名（带type）、[1]文件父目录磁盘块号、[2]文件起始块号、[3]文件结束块号、[4]文件总字节数、[5]文件总磁盘块数
+     * @return [0]文件名（带type）、[1]文件父目录磁盘块号、[2]文件起始块号、[3]文件结束块号、[4]文件总字节数、[5]文件总磁盘块数、[6]文件属性
      */
     public String[] getFileInfo(String fileAbsolutePath) throws Exception {
         // 解析文件路径，获取父目录盘块号
@@ -444,6 +444,7 @@ public class FileOperator {
                 EntryAttribute.NORMAL_FILE.getValue()
         );
 
+        byte attribute = fileEntry.getAttribute();
         int blockNum = fileEntry.getStartNum();
         int endNum = blockNum;
         int byteLength;
@@ -469,7 +470,8 @@ public class FileOperator {
                 String.valueOf(fileEntry.getStartNum()),
                 String.valueOf(endNum),
                 String.valueOf(byteLength),
-                String.valueOf(diskBlockLength)
+                String.valueOf(diskBlockLength),
+                String.valueOf(attribute)
         };
     }
 

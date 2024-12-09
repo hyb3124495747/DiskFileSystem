@@ -49,6 +49,22 @@ public class FileSystem {// 目录项操作类
     }
 
     /**
+     * 获取文件的各种信息
+     * @param fileAbsolutePath 文件名（含路径）
+     * @return [0]文件名（带type）、[1]文件父目录磁盘块号、[2]文件起始块号、
+     * [3]文件结束块号、[4]文件总字节数、[5]文件总磁盘块数、[6]文件属性
+     */
+    public String[] getFileInfo(String fileAbsolutePath) {
+        try {
+            // 调用文件操作类获取文件信息，并返回结果
+            return fileOperator.getFileInfo(fileAbsolutePath);
+        } catch (Exception e) {
+            Tools.logError("Error getting file info: " + e.getMessage(), this.LOG_FILE_NAME); //输出错误信息到日志文件
+            return null;
+        }
+    }
+
+    /**
      * 创建新文件
      *
      * @param fileAbsolutePath 文件完整路径
@@ -209,7 +225,7 @@ public class FileSystem {// 目录项操作类
      * 列出目录下的内容
      *
      * @param dirAbsolutePath 目标目录名
-     * @return 内容，null为目录不存在
+     * @return 内容(name(and type),attribute,startNum,diskBlockLength)，null为目录不存在
      */
     public String[][] listDir(String dirAbsolutePath) {
         try {

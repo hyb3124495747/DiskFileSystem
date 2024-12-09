@@ -86,7 +86,7 @@ public class DirOperator {
      * 显示目录内容
      *
      * @param dirAbsolutePath 目录名（含路径）
-     * @return 目录内容的 Entry 数组
+     * @return 目录内容的 Entry 数组 (name(and type),attribute,startNum,diskBlockLength)
      */
     public String[][] listDir(String dirAbsolutePath) throws Exception {
         // 获取目录内容
