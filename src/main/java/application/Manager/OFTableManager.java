@@ -14,9 +14,6 @@ public class OFTableManager {
 
     public OFTableManager() {
         this.oftleList = new ArrayList<>();
-        for (int i = 0; i < maxLength; i++) {
-            oftleList.add(null);
-        }
     }
 
 

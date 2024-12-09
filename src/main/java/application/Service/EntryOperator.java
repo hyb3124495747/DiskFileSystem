@@ -102,10 +102,10 @@ public class EntryOperator {
         System.arraycopy(this.readBuffer, 0, this.writeBuffer, 0, DiskManager.BLOCK_SIZE);
 
         // 将新数据写入写缓冲区的起始位置
-        System.arraycopy(data, 0, writeBuffer, 0, data.length);
+        System.arraycopy(data, 0, this.writeBuffer, 0, data.length);
 
         // 将写缓冲区的内容写回磁盘块
-        diskManager.writeBlock(blockIndex, writeBuffer);
+        diskManager.writeBlock(blockIndex, this.writeBuffer);
     }
 
     /**
@@ -393,7 +393,7 @@ public class EntryOperator {
     public void setEntryToDirectory(int parentDirBlockIndex, Entry targetEntry) throws Exception {
         // 读取
         byte[] dirBlockData = getContentFromBlock(parentDirBlockIndex);
-        String fileNameAndType = new String(targetEntry.getName()).trim() + new String(targetEntry.getType()).trim();
+        String fileNameAndType = new String(targetEntry.getName()).trim() +"."+ new String(targetEntry.getType()).trim();
 
         // 遍历目录块中的每个目录项
         for (int entryOffset = 0; entryOffset < DiskManager.BLOCK_SIZE; entryOffset += this.entrySize) {
@@ -409,6 +409,7 @@ public class EntryOperator {
                 entryName = new String(new byte[]{entry[0], entry[1], entry[2]}).trim() + "." + new String(new byte[]{entry[3], entry[4]}).trim();
 
             if (entryName.equals(fileNameAndType)) {
+                this.writeBuffer = Arrays.copyOf(dirBlockData, DiskManager.BLOCK_SIZE);
                 System.arraycopy(targetEntry.getName(), 0, this.writeBuffer, entryOffset + EntryStructure.NAME_POS.getValue(), EntryStructure.NAME_LENGTH.getValue());
                 System.arraycopy(targetEntry.getType(), 0, this.writeBuffer, entryOffset + EntryStructure.TYPE_POS.getValue(), EntryStructure.TYPE_LENGTH.getValue());
                 this.writeBuffer[entryOffset + EntryStructure.ATTRIBUTE_POS.getValue()] = targetEntry.getAttribute(); // 文件属性
@@ -416,7 +417,10 @@ public class EntryOperator {
                 this.writeBuffer[entryOffset + EntryStructure.DISK_BLOCK_LENGTH_POS.getValue()] = targetEntry.getDiskBlockLength(); // 长度
 
                 // 将更新后的数据写回磁盘
-                setContentToEntry(parentDirBlockIndex, this.writeBuffer);
+                System.out.println("************************ I am "+this.writeBuffer[entryOffset + EntryStructure.ATTRIBUTE_POS.getValue()]);
+                diskManager.writeBlock(parentDirBlockIndex, this.writeBuffer);
+                byte[] d = getContentFromBlock(parentDirBlockIndex);
+                System.out.println("************************ I am "+d[entryOffset + EntryStructure.ATTRIBUTE_POS.getValue()]);
                 break;
             }
         }

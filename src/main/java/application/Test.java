@@ -99,7 +99,12 @@ public class Test {
 
         fileSystem.createFile("1.tx", EntryAttribute.NORMAL_FILE.getValue());
         String res4 =fileSystem.changeFileAttribute("1.tx", EntryAttribute.READ_ONLY.getValue());
+        System.out.println(fileSystem.getFileInfo("1.tx")[6]);
+        String res6 =fileSystem.writeFile("1.tx", new byte[]{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}, 10);
+        System.out.println(res6);
 
+        String res5 = fileSystem.readFile("1.tx", 10);
+        System.out.println(res5);
         fileSystem.debug_printDisk();
         fileSystem.debug_rootDir();
     }
