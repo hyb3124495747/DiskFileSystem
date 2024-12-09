@@ -25,6 +25,7 @@ import javafx.stage.Stage;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Optional;
 
 /**
  * 磁盘模块展示(界面交互)
@@ -127,7 +128,19 @@ public class MainController {
         MenuItem readOnlyItem = new MenuItem("只读打开");
         readOnlyItem.setStyle("-fx-padding: 5 15;");
         
-        fileContextMenu.getItems().addAll(openItem, readOnlyItem);
+        // 添加属性修改选项
+        MenuItem propertiesItem = new MenuItem("修改属性");
+        propertiesItem.setStyle("-fx-padding: 5 15;");
+        
+        // 添加分隔线
+        SeparatorMenuItem separator1 = new SeparatorMenuItem();
+        SeparatorMenuItem separator2 = new SeparatorMenuItem();
+        
+        // 添加删除选项
+        MenuItem deleteItem = new MenuItem("删除");
+        deleteItem.setStyle("-fx-padding: 5 15;");
+        
+        fileContextMenu.getItems().addAll(openItem, readOnlyItem, separator1, propertiesItem, separator2, deleteItem);
         
         // 设置菜单样式
         fileContextMenu.setStyle("-fx-background-color: white; " +
@@ -137,7 +150,9 @@ public class MainController {
         
         // 设置菜单项样式
         for (MenuItem item : fileContextMenu.getItems()) {
-            item.setStyle("-fx-text-fill: #333333; -fx-padding: 5 15;");
+            if (!(item instanceof SeparatorMenuItem)) {
+                item.setStyle("-fx-text-fill: #333333; -fx-padding: 5 15;");
+            }
         }
     }
 
@@ -167,7 +182,7 @@ public class MainController {
             }
             
             // 确保返回的路径是根目录
-            if (currentPath.equals("")) {
+            if (currentPath.isEmpty()) {
                 currentPath = "/";
             }
             
@@ -183,14 +198,9 @@ public class MainController {
     private void handleCreateFile() {
         Dialog<String> dialog = createCustomDialog("创建文件", "请输入文件名");
         dialog.showAndWait().ifPresent(fileName -> {
-            String s = "";
-            if(!currentPath.equals("/")) {
-                s = currentPath;
-            }
+            String s = currentPath;
             // 构建完整路径，使用 Unix 风格的路径
             String fullPath = s +fileName; // 直接使用 Unix 风格的路径
-
-            System.out.println(fullPath);
 
             // 直接使用完整路径创建文件
             String result = fileSystem.createFile(fullPath, EntryAttribute.NORMAL_FILE.getValue());
@@ -272,7 +282,7 @@ public class MainController {
         VBox content = new VBox(8);  // 减小间距从10到8
         content.setPadding(new Insets(15, 15, 10, 15));  // 减内边距
         
-        // 添加标题标签
+        // 添加��题标签
         Label titleLabel = new Label(headerText);
         titleLabel.setStyle("-fx-font-size: 14px; -fx-font-weight: bold;");
         
@@ -359,7 +369,7 @@ public class MainController {
         Label headerLabel = new Label(header);
         headerLabel.setStyle("-fx-font-size: 14px; -fx-font-weight: bold;");
         
-        // 如果有详细内容，添加��容文本
+        // 如果有详细内容，添加容文本
         if (content != null) {
             Label contentLabel = new Label(content);
             contentLabel.setStyle("-fx-text-fill: #666666;");
@@ -505,22 +515,24 @@ public class MainController {
         fileBox.setOnMouseClicked(event -> {
             if (event.getButton() == MouseButton.PRIMARY) {
                 if (file.isDirectory) {
-                    // 更新路径
                     currentPath = currentPath + file.name + "/";
                     updatePathField();
-                    
-                    // 刷新界面显示
                     refreshFileView();
                 } else {
-                    // 如果是文件，则左键点击打开文件
                     handleFileOpen(file, false);
                 }
-            } else if (event.getButton() == MouseButton.SECONDARY && !file.isDirectory) {
-                // 右键点击文件时显示文件菜单
-                fileContextMenu.getItems().get(0).setOnAction(e -> handleFileOpen(file, false));
-                fileContextMenu.getItems().get(1).setOnAction(e -> handleFileOpen(file, true));
-                fileContextMenu.show(fileBox, event.getScreenX(), event.getScreenY());
-                event.consume(); // 阻止事件冒泡
+            } else if (event.getButton() == MouseButton.SECONDARY) {
+                if (file.isDirectory) {
+                    contextMenu.show(fileBox, event.getScreenX(), event.getScreenY());
+                } else {
+                    // 设置文件右键菜单的事件处理
+                    fileContextMenu.getItems().get(0).setOnAction(e -> handleFileOpen(file, false));
+                    fileContextMenu.getItems().get(1).setOnAction(e -> handleFileOpen(file, true));
+                    fileContextMenu.getItems().get(3).setOnAction(e -> handleFileProperties(file)); // 属性修改
+                    fileContextMenu.getItems().get(5).setOnAction(e -> handleDeleteFile(file));
+                    fileContextMenu.show(fileBox, event.getScreenX(), event.getScreenY());
+                }
+                event.consume();
             }
         });
 
@@ -536,14 +548,20 @@ public class MainController {
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/FileEditView.fxml"));
             Parent root = loader.load();
-            
+
+            String fullPath = currentPath + file.name;
+
+            String[] fileInfo = fileSystem.getFileInfo(fullPath);
+            String s = fileInfo[6];
+            System.out.println(s);
+
             FileEditController controller = loader.getController();
             controller.setReadOnly(readOnly);
             controller.setFileName(file.name);
             
             // TODO: 从文件系统读取实际文件内容
-            String content = ""; // 这里需要添加从文件系统读取文件内容的代码
-            controller.setContent(content);
+            String content = fileSystem.typeFile(fullPath); // 这里需要添加从文件系统读取文件内容的代码
+            controller.setContent(content,fullPath);
             
             Stage stage = new Stage();
             stage.setTitle((readOnly ? "只读 - " : "") + file.name);
@@ -563,5 +581,105 @@ public class MainController {
             e.printStackTrace();
             showCustomAlert("错误", "无法打开文件", e.getMessage(), Alert.AlertType.ERROR);
         }
+    }
+
+    // 添加处理文件删除的方法
+    private void handleDeleteFile(TestFile file) {
+        Alert confirmDialog = new Alert(Alert.AlertType.CONFIRMATION);
+        confirmDialog.setTitle("确认删除");
+        confirmDialog.setHeaderText(null);
+        confirmDialog.setContentText("确定要删除 " + file.name + " 吗？");
+        
+        // 自定义确认对话框按钮
+        Button okButton = (Button) confirmDialog.getDialogPane().lookupButton(ButtonType.OK);
+        okButton.setText("删除");
+        okButton.setStyle("-fx-background-color: #F44336; -fx-text-fill: white;");
+        
+        Button cancelButton = (Button) confirmDialog.getDialogPane().lookupButton(ButtonType.CANCEL);
+        cancelButton.setText("取消");
+        
+        Optional<ButtonType> result = confirmDialog.showAndWait();
+        if (result.isPresent() && result.get() == ButtonType.OK) {
+            String s = "/";
+            if(!currentPath.equals("/")){
+                s = currentPath;
+            }
+            String fullPath = s + file.name;
+            System.out.println(fullPath);
+            String deleteResult = fileSystem.deleteFile(fullPath);
+            
+            if (deleteResult.equals("1")) {
+                showCustomAlert("成功", "文件删除成功!", null, Alert.AlertType.INFORMATION);
+                if (diskStatusObserver != null) {
+                    diskStatusObserver.onDiskStatusChanged();
+                }
+                refreshFileView();
+            } else {
+                showCustomAlert("错误", "文件删除失败", "错误信息: " + deleteResult, Alert.AlertType.ERROR);
+            }
+        }
+    }
+
+    // 修改handleFileProperties方法
+    private void handleFileProperties(TestFile file) {
+        Dialog<Byte> dialog = new Dialog<>();  // 改为Byte类型
+        dialog.setTitle("修改文件属性");
+        dialog.setHeaderText(null);
+        
+        // 创建自定义内容面板
+        VBox content = new VBox(10);
+        content.setPadding(new Insets(15));
+        
+        Label titleLabel = new Label("选择文件属性:");
+        titleLabel.setStyle("-fx-font-size: 14px; -fx-font-weight: bold;");
+        
+        ToggleGroup group = new ToggleGroup();
+        RadioButton readWriteBtn = new RadioButton("读写");
+        readWriteBtn.setToggleGroup(group);
+        readWriteBtn.setSelected(true);
+        
+        RadioButton readOnlyBtn = new RadioButton("只读");
+        readOnlyBtn.setToggleGroup(group);
+        
+        content.getChildren().addAll(titleLabel, readWriteBtn, readOnlyBtn);
+        dialog.getDialogPane().setContent(content);
+        
+        // 添加按钮
+        ButtonType confirmButtonType = new ButtonType("确定", ButtonBar.ButtonData.OK_DONE);
+        ButtonType cancelButtonType = new ButtonType("取消", ButtonBar.ButtonData.CANCEL_CLOSE);
+        dialog.getDialogPane().getButtonTypes().addAll(confirmButtonType, cancelButtonType);
+        
+        // 设置按钮样式
+        Button confirmButton = (Button) dialog.getDialogPane().lookupButton(confirmButtonType);
+        confirmButton.setStyle("-fx-background-color: #2196F3; -fx-text-fill: white; " +
+                              "-fx-padding: 6 15; -fx-background-radius: 3;");
+        
+        // 设置结果转换器
+        dialog.setResultConverter(dialogButton -> {
+            if (dialogButton == confirmButtonType) {
+                // 直接返回对应的属性值
+                return readOnlyBtn.isSelected() ? 
+                       EntryAttribute.READ_ONLY.getValue() : 
+                       EntryAttribute.NORMAL_FILE.getValue();
+            }
+            return null;
+        });
+        
+        // 显示对话框并处理结果
+        dialog.showAndWait().ifPresent(attribute -> {
+
+            String s = currentPath;
+            String fullPath = s + file.name;
+            
+            // 直接使用byte属性值
+            String result = fileSystem.changeFileAttribute(fullPath, attribute);
+            
+            if (result.equals("1")) {
+                showCustomAlert("成功", "文件属性修改成功!", null, Alert.AlertType.INFORMATION);
+                refreshFileView();
+            } else {
+                showCustomAlert("错误", "文件属性修改失败", "错误信息: " + result, Alert.AlertType.ERROR);
+            }
+        });
     }
 } 

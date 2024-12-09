@@ -9,7 +9,6 @@ import application.Enum.EntryStructure;
 import application.Manager.DiskManager;
 import application.Manager.OFTableManager;
 
-import java.io.RandomAccessFile;
 import java.util.Arrays;
 import java.util.Objects;
 
@@ -463,6 +462,10 @@ public class FileOperator {
             if (blockData[i] == BlockStatus.EOF.getValue()) break;
             else lastDiskByteLength++;
         byteLength = (diskBlockLength - 1) * DiskManager.BLOCK_SIZE + lastDiskByteLength;
+
+        if(parentDirName.isEmpty()){
+            parentDirName = "/";
+        }
 
         return new String[]{
                 fileNameOnly,
