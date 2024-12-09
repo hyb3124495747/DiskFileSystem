@@ -43,7 +43,7 @@ public class OFTableManager {
      */
     public OFTLE find(int startNum) {
         for (OFTLE oftle : oftleList) {
-            if (oftle.getStartNum() == startNum)
+            if (oftle != null && oftle.getStartNum() == startNum)
                 return oftle;
         }
         return null;

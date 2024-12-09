@@ -2,12 +2,15 @@ package application.Service;
 
 import application.Entity.Entry;
 import application.Entity.OFTLE;
+import application.Entity.Pointer;
 import application.Enum.BlockStatus;
 import application.Enum.EntryAttribute;
 import application.Enum.EntryStructure;
+import application.Manager.DiskManager;
 import application.Manager.OFTableManager;
 
 import java.util.Arrays;
+import java.util.Objects;
 
 /**
  * 文件操作，提供文件的操作接口：创建文件、读文件、写文件、关闭文件、删除文件等
@@ -34,16 +37,16 @@ public class FileOperator {
             return 0;
         }
 
-        // 解析文件路径，获取父目录盘块号，以检查父目录是否存在
-        String[] pathComponents = fileAbsolutePath.split("/"); // ["", "path", "to", "your", "file.txt"]
-        String parentDirName = String.join("/", Arrays.copyOfRange(pathComponents, 0, pathComponents.length - 1)); // "/path/to/your"
-        int parentDirBlockIndex = this.entryOperator.findDirBlockIndex(parentDirName);
+        // 获取父目录盘块号和文件名，以检查父目录是否存在
+        String[] fileInfo = getFileInfo(fileAbsolutePath);
+        String fileNameOnly = fileInfo[0];
+        int parentDirBlockIndex = Integer.parseInt(fileInfo[1]);
         if (parentDirBlockIndex == -1) {
             return -1;
         }
 
         // 检查文件名（含type）
-        byte[][] nameAndType = Tools.checkNameAndType(pathComponents[pathComponents.length - 1], EntryAttribute.DIRECTORY.isEqual(attribute));
+        byte[][] nameAndType = Tools.checkNameAndType(fileNameOnly, EntryAttribute.DIRECTORY.isEqual(attribute));
         if (nameAndType == null) {
             return -5;
         }
@@ -54,7 +57,7 @@ public class FileOperator {
         System.arraycopy(nameAndType[1], 0, fileType, 0, fileType.length);
 
         // 检查是否有重名文件
-        if (this.entryOperator.findEntryInDirectory(parentDirBlockIndex, pathComponents[pathComponents.length - 1], attribute) != null) {
+        if (this.entryOperator.findEntryInDirectory(parentDirBlockIndex, fileNameOnly, attribute) != null) {
             return -2;
         }
 
@@ -82,10 +85,100 @@ public class FileOperator {
         this.entryOperator.addEntryToDirectory(parentDirBlockIndex, freeEntryIndex, newFileEntry);
 
         // 最后填写已打开文件表
-        //OFTLE newOftle = new OFTLE(fileAbsolutePath, attribute, fileBlockIndex, fileBlockIndex, 1, "rw");
+        //OFTLE newOftle = new OFTLE(fileAbsolutePath, attribute, fileBlockIndex, fileBlockIndex, 0, "rw");
         //ofTableManager.add(newOftle);
         return 1;
     }
+
+    /**
+     * 打开文件
+     * 若文件已存在于OpenFile表中，则不需要填写已打开文件表, 否则填写已打开文件表
+     *
+     * @param fileAbsolutePath 文件完整路径
+     * @param operateFlag      文件操作类型（r、w、rw、其他默认rw）
+     * @return 成功返回 1，只读文件以写方式打开返回0，文件路径不存在返回 -1，文件已打开-6
+     */
+    public int openFile(String fileAbsolutePath, String operateFlag) throws Exception {
+        // 获取父目录盘块号和文件名，以检查父目录是否存在
+        String[] fileInfo = getFileInfo(fileAbsolutePath);
+        String fileNameOnly = fileInfo[0];
+        int parentDirBlockIndex = Integer.parseInt(fileInfo[1]);
+        int entryStartNum = Integer.parseInt(fileInfo[2]);
+        int entryEndNum = Integer.parseInt(fileInfo[3]);
+        int bytesLength = Integer.parseInt(fileInfo[4]);
+        // 寻找该登记项
+        Entry fileEntry = this.entryOperator.findEntryInDirectory(parentDirBlockIndex, fileNameOnly, EntryAttribute.NORMAL_FILE.getValue());
+        if (fileEntry == null) return -1; // 文件不存在
+
+        // 检查文件是否已打开
+        OFTLE ofTle = this.ofTableManager.find(entryStartNum);
+        if (ofTle != null) {
+            return -6;
+        } else if (!Objects.equals(operateFlag, "r") && fileEntry.isReadOnly()) {
+            // 文件是只读文件，无法以写方式打开
+            return 0;
+        } else {
+            // 文件未打开，添加到已打开文件表
+            ofTle = new OFTLE(fileAbsolutePath, EntryAttribute.NORMAL_FILE.getValue(),
+                    entryStartNum, entryEndNum, bytesLength, operateFlag);
+            this.ofTableManager.add(ofTle);
+            return 1;
+        }
+    }
+
+
+    /**
+     * 读取文件内容，先调用打开文件
+     *
+     * @param fileAbsolutePath 文件名（含路径）
+     * @param readLength       需要读取的长度（以字节为单位）
+     * @return 读取的内容，如果文件不存在或无法读取，则返回错误信息
+     */
+    public String readFile(String fileAbsolutePath, int readLength) throws Exception {
+        // 获取父目录盘块号和文件名，以检查父目录是否存在
+        String[] fileInfo = getFileInfo(fileAbsolutePath);
+        int entryStartNum = Integer.parseInt(fileInfo[2]);
+
+        // 检查文件是否已打开
+        OFTLE ofTle = ofTableManager.find(entryStartNum);
+        if (ofTle == null) {
+            // 文件未打开，尝试以只读打开文件
+            int result = openFile(fileAbsolutePath, "r");
+            if (result != 1) {
+                return "File open failed: " + Tools.checkResult(result);
+            }
+        }
+        ofTle = ofTableManager.find(entryStartNum);
+
+        // 检查文件是否以读方式打开
+        if (ofTle.getOperateFlag() != 0) {
+            return "File is not opened in read mode.";
+        }
+
+        // 从已打开文件表中读出读指针，并从这个位置上读出所需长度
+        Pointer readPointer = ofTle.getRead();
+        byte[] fileContent = new byte[readLength];
+        int bytesRead = 0;
+        int curBlockIndex = readPointer.getdNum();
+        // 读取文件内容
+        while (bytesRead < readLength) {
+            byte[] blockData = this.entryOperator.getContentFromBlock(curBlockIndex);
+            for (; readPointer.getbNum() < blockData.length; readPointer.setbNum(readPointer.getbNum() + 1)) {
+                if (blockData[readPointer.getbNum()] == BlockStatus.EOF.getValue()) {
+                    return new String(fileContent).trim();
+                }
+                fileContent[bytesRead++] = blockData[readPointer.getbNum()];
+            }
+            curBlockIndex = this.entryOperator.getNextBlockIndex(curBlockIndex);
+            if (curBlockIndex == -1) {
+                return new String(fileContent).trim();
+            }
+            readPointer.setdNum(curBlockIndex);
+            readPointer.setbNum(0);
+        }
+        return null;
+    }
+
 
     /**
      * 关闭文件
@@ -94,14 +187,15 @@ public class FileOperator {
      * @return 关闭成功返回 1， 文件不存在返回 -1
      */
     public int closeFile(String fileAbsolutePath) throws Exception {
-        // 解析文件路径，获取父目录盘块号
-        String[] pathComponents = fileAbsolutePath.split("/");
-        String parentDirName = String.join("/", Arrays.copyOfRange(pathComponents, 0, pathComponents.length - 1));
-        int parentDirBlockIndex = this.entryOperator.findDirBlockIndex(parentDirName);
+        // 获取父目录盘块号和文件名，以检查父目录是否存在
+        String[] fileInfo = getFileInfo(fileAbsolutePath);
+        String fileNameOnly = fileInfo[0];
+        int parentDirBlockIndex = Integer.parseInt(fileInfo[1]);
+
         // 寻找该登记项
         Entry fileEntry = this.entryOperator.findEntryInDirectory(
-                this.entryOperator.findDirBlockIndex(parentDirName),
-                pathComponents[pathComponents.length - 1],
+                parentDirBlockIndex,
+                fileNameOnly,
                 EntryAttribute.NORMAL_FILE.getValue()
         );
         if (fileEntry == null) return -1; // 文件不存在
@@ -115,9 +209,13 @@ public class FileOperator {
             // 追加文件结束符
             int dNum = targetOftle.getWrite().getdNum();
             int bNum = targetOftle.getWrite().getbNum();
-            
+            // 在第dNum块的第bNum个字节处中追加文件结束符
+            byte[] content = this.entryOperator.getContentFromBlock(dNum);
+            content[bNum] = BlockStatus.EOF.getValue();
+            // 更新写指针
+            targetOftle.setWrite(new Pointer(dNum, bNum + 1));
+            this.entryOperator.setContentToEntry(dNum, content);
         }
-
         // 从已打开文件表中删除对应项
         this.ofTableManager.remove(targetOftle);
         return 1;
@@ -131,14 +229,14 @@ public class FileOperator {
      * @return 删除成功返回 1， 文件不存在返回 -1， 文件已打开返回 -6
      */
     public int deleteFile(String fileAbsolutePath) throws Exception {
-        // 解析文件路径，获取父目录盘块号
-        String[] pathComponents = fileAbsolutePath.split("/");
-        String parentDirName = String.join("/", Arrays.copyOfRange(pathComponents, 0, pathComponents.length - 1));
-        int parentDirBlockIndex = this.entryOperator.findDirBlockIndex(parentDirName);
+        // 获取父目录盘块号和文件名，以检查父目录是否存在
+        String[] fileInfo = getFileInfo(fileAbsolutePath);
+        String fileNameOnly = fileInfo[0];
+        int parentDirBlockIndex = Integer.parseInt(fileInfo[1]);
         // 寻找该登记项
         Entry fileEntry = this.entryOperator.findEntryInDirectory(
-                this.entryOperator.findDirBlockIndex(parentDirName),
-                pathComponents[pathComponents.length - 1],
+                parentDirBlockIndex,
+                fileNameOnly,
                 EntryAttribute.NORMAL_FILE.getValue()
         );
         if (fileEntry == null) return -1; // 文件不存在
@@ -164,13 +262,14 @@ public class FileOperator {
      * @return 文件内容的字符串表示，如果文件不存在或无法读取，则返回错误信息
      */
     public String typeFile(String fileAbsolutePath) throws Exception {
-        // 解析文件路径，获取父目录盘块号
-        String[] pathComponents = fileAbsolutePath.split("/");
-        String parentDirName = String.join("/", Arrays.copyOfRange(pathComponents, 0, pathComponents.length - 1));
+        // 获取父目录盘块号和文件名，以检查父目录是否存在
+        String[] fileInfo = getFileInfo(fileAbsolutePath);
+        String fileNameOnly = fileInfo[0];
+        int parentDirBlockIndex = Integer.parseInt(fileInfo[1]);
         // 找到文件目录项
         Entry fileEntry = this.entryOperator.findEntryInDirectory(
-                this.entryOperator.findDirBlockIndex(parentDirName),
-                pathComponents[pathComponents.length - 1],
+                parentDirBlockIndex,
+                fileNameOnly,
                 EntryAttribute.NORMAL_FILE.getValue()
         );
         if (fileEntry == null) {
@@ -196,14 +295,14 @@ public class FileOperator {
      * @return 1:成功， -1:文件不存在，-2：文件重名 ，-6:文件已打开
      */
     public int changeFileAttribute(String fileAbsolutePath, byte newAttribute) throws Exception {
-        // 解析文件路径，获取父目录盘块号
-        String[] pathComponents = fileAbsolutePath.split("/");
-        String parentDirName = String.join("/", Arrays.copyOfRange(pathComponents, 0, pathComponents.length - 1));
-        int parentDirBlockIndex = this.entryOperator.findDirBlockIndex(parentDirName);
+        // 获取父目录盘块号和文件名，以检查父目录是否存在
+        String[] fileInfo = getFileInfo(fileAbsolutePath);
+        String fileNameOnly = fileInfo[0];
+        int parentDirBlockIndex = Integer.parseInt(fileInfo[1]);
         // 寻找该登记项
         Entry existingEntry = this.entryOperator.findEntryInDirectory(
-                this.entryOperator.findDirBlockIndex(parentDirName),
-                pathComponents[pathComponents.length - 1],
+                parentDirBlockIndex,
+                fileNameOnly,
                 EntryAttribute.NORMAL_FILE.getValue()
         );
         if (existingEntry == null) return -1; // 文件不存在
@@ -218,4 +317,53 @@ public class FileOperator {
         this.entryOperator.setEntryToDirectory(parentDirBlockIndex, existingEntry);
         return 1;
     }
+
+
+    /**
+     * 获取文件的各种信息
+     *
+     * @param fileAbsolutePath 文件绝对路径
+     * @return [0]文件名（带type）、[1]文件父目录磁盘块号、[2]文件起始块号、[3]文件结束块号、[4]文件总字节数、[5]文件总磁盘块数
+     */
+    public String[] getFileInfo(String fileAbsolutePath) throws Exception {
+        // 解析文件路径，获取父目录盘块号
+        String[] pathComponents = fileAbsolutePath.split("/");
+        String parentDirName = String.join("/", Arrays.copyOfRange(pathComponents, 0, pathComponents.length - 1));
+        String fileNameOnly = pathComponents[pathComponents.length - 1];
+        int parentDirBlockIndex = this.entryOperator.findDirBlockIndex(parentDirName);
+        Entry fileEntry = this.entryOperator.findEntryInDirectory(
+                parentDirBlockIndex,
+                fileNameOnly,
+                EntryAttribute.NORMAL_FILE.getValue()
+        );
+
+        int blockNum = fileEntry.getStartNum();
+        int endNum = blockNum;
+        int byteLength = 0;
+        int diskBlockLength = 0;
+        // 遍历所有的磁盘块，记录总盘块数，找出最后一个磁盘块
+        while (blockNum != -1) {
+            diskBlockLength++;
+            endNum = blockNum;      // 最后一个盘块号
+            blockNum = this.entryOperator.getNextBlockIndex(blockNum);
+        }
+
+        // 计算最后一个盘块的实际字节长度，总字节数 = (总盘块数 - 1) * 64 + 最后一个盘块的字节数
+        int lastDiskByteLength = 0;
+        byte[] blockData = this.entryOperator.getContentFromBlock(endNum);
+        for (int i = 0; i < DiskManager.BLOCK_SIZE; i++)
+            if (blockData[i] == BlockStatus.EOF.getValue()) break;
+            else lastDiskByteLength++;
+        byteLength = (diskBlockLength - 1) * DiskManager.BLOCK_SIZE + lastDiskByteLength;
+
+        return new String[]{
+                fileNameOnly,
+                parentDirName,
+                String.valueOf(fileEntry.getStartNum()),
+                String.valueOf(endNum),
+                String.valueOf(byteLength),
+                String.valueOf(diskBlockLength)
+        };
+    }
+
 }

@@ -57,6 +57,7 @@ public class DiskManager {
         } catch (Exception e) {
             e.printStackTrace();
         }
+
         return list;
     }
 
@@ -78,6 +79,10 @@ public class DiskManager {
             // 格式化磁盘
             formatDisk();
             // 保存当前FAT在内存中
+            this.FAT = readFAT();
+        }
+        else {
+            // 读取FAT
             this.FAT = readFAT();
         }
     }

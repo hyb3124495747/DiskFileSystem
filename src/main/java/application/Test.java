@@ -94,6 +94,9 @@ public class Test {
         String res2 = fileSystem.createDir("2", EntryAttribute.DIRECTORY.getValue());
         System.out.println(res2);
 
+        String res3 = fileSystem.deleteFile("1.tx");
+        System.out.println(res3);
+
         fileSystem.debug_printDisk();
         fileSystem.debug_rootDir();
     }

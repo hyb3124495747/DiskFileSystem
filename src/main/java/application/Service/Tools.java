@@ -1,16 +1,20 @@
 package application.Service;
 
 
+import application.Entity.Entry;
 import application.Enum.EntryStructure;
 
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.Arrays;
 
 /**
  * 辅助工具类，包含一些常用辅助方法
  */
 public class Tools {
+
+
     /**
      * 检查文件名（含type）
      *
@@ -59,7 +63,7 @@ public class Tools {
      * 检查结果
      * 操作错误码
      * 1:成功；
-     * 0:只读属性无法创建文件；
+     * 0:对只读文件操作无效；
      * -1:路径不存在；
      * -2:文件已存在；
      * -3:无空闲磁盘块；
@@ -77,7 +81,7 @@ public class Tools {
             case 1:
                 return "1";
             case 0:
-                return "ERROR: Cannot create file with read-only attribute.";
+                return "ERROR: Operation invalid for read-only file.";
             case -1:
                 return "ERROR: Path does not exist.";
             case -2:
