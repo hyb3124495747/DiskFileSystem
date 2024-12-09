@@ -182,15 +182,11 @@ public class FileOperator {
         int entryStartNum = Integer.parseInt(fileInfo[2]);
 
         // 检查文件是否已打开，同时可检查文件是否存在
-        OFTLE ofTle = ofTableManager.find(entryStartNum);
-        if (ofTle == null) {
-            // 文件未打开，尝试以写方式打开文件
-            int result = openFile(fileAbsolutePath, "w");
-            if (result != 1) {
-                return result; // 打开文件失败
-            }
+        int result = openFile(fileAbsolutePath, "rw");
+        if (result != 1) {
+            return result;
         }
-        ofTle = ofTableManager.find(entryStartNum);
+        OFTLE ofTle = ofTableManager.find(entryStartNum);
 
         // 检查文件是否以写方式打开
         if (ofTle.getOperateFlag() != 1 && ofTle.getOperateFlag() != 2) {

@@ -47,6 +47,7 @@ public class MainController {
     
     private ContextMenu contextMenu;
     private ContextMenu fileContextMenu;
+    private ContextMenu directoryContextMenu;
 
     // 初始化
     @FXML
@@ -55,6 +56,7 @@ public class MainController {
         updatePathField();
         setupContextMenu();
         setupFileContextMenu();
+        setupDirectoryContextMenu();
         
         // 添加这行，直接刷新显示实际文件系统内容
         refreshFileView();
@@ -128,19 +130,26 @@ public class MainController {
         MenuItem readOnlyItem = new MenuItem("只读打开");
         readOnlyItem.setStyle("-fx-padding: 5 15;");
         
-        // 添加属性修改选项
         MenuItem propertiesItem = new MenuItem("修改属性");
         propertiesItem.setStyle("-fx-padding: 5 15;");
+        
+        MenuItem renameItem = new MenuItem("重命名");
+        renameItem.setStyle("-fx-padding: 5 15;");
+        
+        MenuItem deleteItem = new MenuItem("删除");
+        deleteItem.setStyle("-fx-padding: 5 15;");
         
         // 添加分隔线
         SeparatorMenuItem separator1 = new SeparatorMenuItem();
         SeparatorMenuItem separator2 = new SeparatorMenuItem();
+        SeparatorMenuItem separator3 = new SeparatorMenuItem();
         
-        // 添加删除选项
-        MenuItem deleteItem = new MenuItem("删除");
-        deleteItem.setStyle("-fx-padding: 5 15;");
-        
-        fileContextMenu.getItems().addAll(openItem, readOnlyItem, separator1, propertiesItem, separator2, deleteItem);
+        fileContextMenu.getItems().addAll(
+            openItem, readOnlyItem, separator1,
+            propertiesItem, separator2,
+            renameItem, separator3,
+            deleteItem
+        );
         
         // 设置菜单样式
         fileContextMenu.setStyle("-fx-background-color: white; " +
@@ -157,6 +166,29 @@ public class MainController {
     }
 
     /**
+     * 文件夹右键菜单初始化
+     */
+    private void setupDirectoryContextMenu() {
+        directoryContextMenu = new ContextMenu();
+        
+        MenuItem deleteItem = new MenuItem("删除");
+        deleteItem.setStyle("-fx-padding: 5 15;");
+        
+        directoryContextMenu.getItems().add(deleteItem);
+        
+        // 设置菜单样式
+        directoryContextMenu.setStyle("-fx-background-color: white; " +
+                                   "-fx-background-radius: 5; " +
+                                   "-fx-padding: 5; " +
+                                   "-fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 10, 0, 0, 0);");
+        
+        // 设置菜单项样式
+        for (MenuItem item : directoryContextMenu.getItems()) {
+            item.setStyle("-fx-text-fill: #333333; -fx-padding: 5 15;");
+        }
+    }
+
+    /**
      * 修改目录路径
      */
     private void updatePathField() {
@@ -169,13 +201,15 @@ public class MainController {
     @FXML
     private void handleUpDirectory() {
         if (!currentPath.equals("/")) {
+            currentPath = currentPath.substring(0, currentPath.length() - 1);
             // 获取最后一个斜杠的位置
             int lastSlash = currentPath.lastIndexOf('/');
-            
+
             // 如果当前路径是根目录的子目录
             if (lastSlash > 0) {
                 // 新路径为上级目录
-                currentPath = currentPath.substring(0, lastSlash-1);
+                currentPath = currentPath.substring(0, lastSlash+1);
+                System.out.println(currentPath);
             } else {
                 // 如果没有找到斜杠，说明当前路径是根目录
                 currentPath = "/";
@@ -193,7 +227,7 @@ public class MainController {
     }
 
     /**
-     * 创建文件
+     * 创��文件
      */
     private void handleCreateFile() {
         Dialog<String> dialog = createCustomDialog("创建文件", "请输入文件名");
@@ -282,7 +316,7 @@ public class MainController {
         VBox content = new VBox(8);  // 减小间距从10到8
         content.setPadding(new Insets(15, 15, 10, 15));  // 减内边距
         
-        // 添加��题标签
+        // 添加题标签
         Label titleLabel = new Label(headerText);
         titleLabel.setStyle("-fx-font-size: 14px; -fx-font-weight: bold;");
         
@@ -514,22 +548,25 @@ public class MainController {
         // 添加点击事件处理
         fileBox.setOnMouseClicked(event -> {
             if (event.getButton() == MouseButton.PRIMARY) {
-                if (file.isDirectory) {
-                    currentPath = currentPath + file.name + "/";
-                    updatePathField();
-                    refreshFileView();
-                } else {
-                    handleFileOpen(file, false);
+                if (event.getClickCount() == 2) {
+                    if (file.isDirectory) {
+                        currentPath = currentPath + file.name + "/";
+                        updatePathField();
+                        refreshFileView();
+                    } else {
+                        handleFileOpen(file, false);
+                    }
                 }
             } else if (event.getButton() == MouseButton.SECONDARY) {
                 if (file.isDirectory) {
-                    contextMenu.show(fileBox, event.getScreenX(), event.getScreenY());
+                    directoryContextMenu.getItems().get(0).setOnAction(e -> handleDeleteDirectory(file));
+                    directoryContextMenu.show(fileBox, event.getScreenX(), event.getScreenY());
                 } else {
-                    // 设置文件右键菜单的事件处理
                     fileContextMenu.getItems().get(0).setOnAction(e -> handleFileOpen(file, false));
                     fileContextMenu.getItems().get(1).setOnAction(e -> handleFileOpen(file, true));
-                    fileContextMenu.getItems().get(3).setOnAction(e -> handleFileProperties(file)); // 属性修改
-                    fileContextMenu.getItems().get(5).setOnAction(e -> handleDeleteFile(file));
+                    fileContextMenu.getItems().get(3).setOnAction(e -> handleFileProperties(file));
+                    fileContextMenu.getItems().get(5).setOnAction(e -> handleRename(file));
+                    fileContextMenu.getItems().get(7).setOnAction(e -> handleDeleteFile(file));
                     fileContextMenu.show(fileBox, event.getScreenX(), event.getScreenY());
                 }
                 event.consume();
@@ -555,20 +592,30 @@ public class MainController {
             String s = fileInfo[6];
             System.out.println(s);
 
+            if(s.equals("1") && !readOnly){
+                System.out.println("文件为只读，只能以只读方式打开");
+                return;
+            }
+
             FileEditController controller = loader.getController();
             controller.setReadOnly(readOnly);
             controller.setFileName(file.name);
             
-            // TODO: 从文件系统读取实际文件内容
-            String content = fileSystem.typeFile(fullPath); // 这里需要添加从文件系统读取文件内容的代码
+            String content = fileSystem.readFile(fullPath,EntryAttribute.NORMAL_FILE.getValue());
+
+//            if(content.contains("File open failed, and ")){
+//                return;
+//            }
+
             controller.setContent(content,fullPath);
             
             Stage stage = new Stage();
             stage.setTitle((readOnly ? "只读 - " : "") + file.name);
             stage.setScene(new Scene(root, 600, 400));
             
-            // 设置模态
-            stage.initModality(Modality.APPLICATION_MODAL);
+            // 将模态类型改为 WINDOW_MODAL，这样只会阻止与父窗口的交互
+            // 而不会阻止与其他窗口的交互
+            stage.initModality(Modality.NONE);
             
             // 设置窗口在屏幕中央
             Rectangle2D screenBounds = Screen.getPrimary().getVisualBounds();
@@ -679,6 +726,65 @@ public class MainController {
                 refreshFileView();
             } else {
                 showCustomAlert("错误", "文件属性修改失败", "错误信息: " + result, Alert.AlertType.ERROR);
+            }
+        });
+    }
+
+    // 添加处理文件夹删除的方法
+    private void handleDeleteDirectory(TestFile file) {
+        Alert confirmDialog = new Alert(Alert.AlertType.CONFIRMATION);
+        confirmDialog.setTitle("确认删除");
+        confirmDialog.setHeaderText(null);
+        confirmDialog.setContentText("确定要删除文件夹 " + file.name + " 及其所有内容吗？");
+        
+        // 自定义确认对话框按钮
+        Button okButton = (Button) confirmDialog.getDialogPane().lookupButton(ButtonType.OK);
+        okButton.setText("删除");
+        okButton.setStyle("-fx-background-color: #F44336; -fx-text-fill: white;");
+        
+        Button cancelButton = (Button) confirmDialog.getDialogPane().lookupButton(ButtonType.CANCEL);
+        cancelButton.setText("取消");
+        
+        Optional<ButtonType> result = confirmDialog.showAndWait();
+        if (result.isPresent() && result.get() == ButtonType.OK) {
+            String fullPath = currentPath + file.name;
+            String deleteResult = fileSystem.removeDir(fullPath);
+            
+            if (deleteResult.equals("1")) {
+                showCustomAlert("成功", "文件夹删除成功!", null, Alert.AlertType.INFORMATION);
+                if (diskStatusObserver != null) {
+                    diskStatusObserver.onDiskStatusChanged();
+                }
+                refreshFileView();
+            } else {
+                showCustomAlert("错误", "文件夹删除失败", "错误信息: " + deleteResult, Alert.AlertType.ERROR);
+            }
+        }
+    }
+
+    private void handleRename(TestFile file) {
+        Dialog<String> dialog = createCustomDialog("重命名", "请输入新的名称:");
+        dialog.getDialogPane().setPrefWidth(300);
+        
+        // 获取输入框并设置当前文件名
+        TextField input = (TextField) ((VBox) dialog.getDialogPane().getContent()).getChildren().get(1);
+        input.setText(file.name);
+        input.selectAll(); // 选中当前文件名以方便修改
+        
+        dialog.showAndWait().ifPresent(newName -> {
+            if (!newName.equals(file.name)) { // 只在名称确实改变时才进行重命名
+                String oldPath = currentPath + file.name;
+                String newPath = currentPath + newName;
+                
+                // 调用文件系统的重命名方法
+                String result = fileSystem.changeFileName(oldPath, newName);
+                
+                if (result.equals("1")) {
+                    showCustomAlert("成功", "重命名成功!", null, Alert.AlertType.INFORMATION);
+                    refreshFileView();
+                } else {
+                    showCustomAlert("错误", "重命名失败", "错误信息: " + result, Alert.AlertType.ERROR);
+                }
             }
         });
     }
