@@ -72,6 +72,7 @@ public class Tools {
      * -6：文件已打开；
      * -7：目录非空
      * -8: 根目录无法删除
+     * -9: 已达到最大打开文件个数
      *
      * @param result 需要判断的结果
      * @return 结果码对应的错误信息
@@ -98,6 +99,8 @@ public class Tools {
                 return "ERROR: Directory is not empty.";
             case -8:
                 return "ERROR: Root directory cannot be deleted.";
+            case -9:
+                return "ERROR: Too many files opened.";
             default:
                 return "ERROR: Unknown error occurred.";
         }

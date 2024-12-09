@@ -97,7 +97,7 @@ public class FileOperator {
      *
      * @param fileAbsolutePath 文件完整路径
      * @param operateFlag      文件操作类型（r、w、rw、其他默认rw）
-     * @return 成功返回 1，只读文件以写方式打开返回0，文件路径不存在返回 -1，文件已打开-6
+     * @return 成功返回 1，只读文件以写方式打开返回0，文件路径不存在返回 -1，文件已打开-6，打开文件表已满-9
      */
     public int openFile(String fileAbsolutePath, String operateFlag) throws Exception {
         // 获取父目录盘块号和文件名，以检查父目录是否存在
@@ -111,20 +111,13 @@ public class FileOperator {
         Entry fileEntry = this.entryOperator.findEntryInDirectory(parentDirBlockIndex, fileNameOnly, EntryAttribute.NORMAL_FILE.getValue());
         if (fileEntry == null) return -1; // 文件不存在
 
-        // 检查文件是否已打开
-        OFTLE ofTle = this.ofTableManager.find(entryStartNum);
-        if (ofTle != null) {
-            return -6;
-        } else if (!Objects.equals(operateFlag, "r") && fileEntry.isReadOnly()) {
+        if (!Objects.equals(operateFlag, "r") && fileEntry.isReadOnly()) {
             // 文件是只读文件，无法以写方式打开
             return 0;
-        } else {
-            // 文件未打开，添加到已打开文件表
-            ofTle = new OFTLE(fileAbsolutePath, EntryAttribute.NORMAL_FILE.getValue(),
-                    entryStartNum, entryEndNum, bytesLength, operateFlag);
-            this.ofTableManager.add(ofTle);
-            return 1;
         }
+        OFTLE ofTle = new OFTLE(fileAbsolutePath, EntryAttribute.NORMAL_FILE.getValue(),
+                entryStartNum, entryEndNum, bytesLength, operateFlag);
+        return this.ofTableManager.add(ofTle);
     }
 
 
@@ -139,16 +132,11 @@ public class FileOperator {
         String[] fileInfo = getFileInfo(fileAbsolutePath);
         int entryStartNum = Integer.parseInt(fileInfo[2]);
 
-        // 检查文件是否已打开，同时可检查文件是否存在
-        OFTLE ofTle = ofTableManager.find(entryStartNum);
-        if (ofTle == null) {
-            // 文件未打开，尝试以只读打开文件
-            int result = openFile(fileAbsolutePath, "r");
-            if (result != 1) {
-                return "File open failed: " + Tools.checkResult(result);
-            }
+        int result = openFile(fileAbsolutePath, "r");
+        if (result != 1) {
+            return "File open failed, and " + Tools.checkResult(result);
         }
-        ofTle = ofTableManager.find(entryStartNum);
+        OFTLE ofTle = ofTableManager.find(entryStartNum);
 
         // 检查文件是否以读方式打开
         if (ofTle.getOperateFlag() != 0) {
@@ -176,7 +164,7 @@ public class FileOperator {
             readPointer.setdNum(curBlockIndex);
             readPointer.setbNum(0);
         }
-        return null;
+        return "1";
     }
 
 
@@ -186,9 +174,10 @@ public class FileOperator {
      * @param fileAbsolutePath 文件完整路径
      * @param writeData        存放准备写入磁盘的数据
      * @param writeLength      写长度
+     * @param isTotalFile      是否是覆盖写，true表示是，false表示否
      * @return 写入成功返回 1，失败返回对应错误码
      */
-    public int writeFile(String fileAbsolutePath, byte[] writeData, int writeLength) throws Exception {
+    public int writeFile(String fileAbsolutePath, byte[] writeData, int writeLength, boolean isTotalFile) throws Exception {
         String[] fileInfo = getFileInfo(fileAbsolutePath);
         int entryStartNum = Integer.parseInt(fileInfo[2]);
 
@@ -212,6 +201,10 @@ public class FileOperator {
         Pointer writePointer = ofTle.getWrite();
         int writePointerBNum = writePointer.getbNum();
         int curBlockIndex = writePointer.getdNum();
+        if (isTotalFile) {
+            writePointerBNum = 0;
+            curBlockIndex = entryStartNum;
+        }
         int bytesWritten = 0;
         // 写入文件内容
         while (bytesWritten < writeLength) {
@@ -463,7 +456,7 @@ public class FileOperator {
             else lastDiskByteLength++;
         byteLength = (diskBlockLength - 1) * DiskManager.BLOCK_SIZE + lastDiskByteLength;
 
-        if(parentDirName.isEmpty()){
+        if (parentDirName.isEmpty()) {
             parentDirName = "/";
         }
 

@@ -105,11 +105,12 @@ public class FileSystem {// 目录项操作类
      * @param fileAbsolutePath 文件完整路径
      * @param writeData        存放准备写入磁盘的数据
      * @param writeLength      写长度
+     * @param isTotalFile      是否写入整个文件
      */
-    public String writeFile(String fileAbsolutePath, byte[] writeData, int writeLength) {
+    public String writeFile(String fileAbsolutePath, byte[] writeData, int writeLength, boolean isTotalFile) {
         try {
             // 调用文件操作类写入文件，并检查结果
-            int result = fileOperator.writeFile(fileAbsolutePath, writeData, writeLength);
+            int result = fileOperator.writeFile(fileAbsolutePath, writeData, writeLength,isTotalFile);
             return Tools.checkResult(result);
         } catch (Exception e) {
             Tools.logError("Error writing file: " + e.getMessage(), this.LOG_FILE_NAME); //输出错误信息到日志文件

@@ -90,21 +90,32 @@ public class Test {
         // 创建文件
         String res1 = fileSystem.createFile("1.tx", EntryAttribute.NORMAL_FILE.getValue());
         System.out.println(res1);
-        // 创建文件夹
-        String res2 = fileSystem.createDir("2", EntryAttribute.DIRECTORY.getValue());
-        System.out.println(res2);
 
-        String res3 = fileSystem.deleteFile("1.tx");
-        System.out.println(res3);
+        // 创建7个文件并都打开
+        for (int i = 0; i < 7; i++) {
+            String res = fileSystem.createFile("/" + (char) ('a' + i) + ".tx", EntryAttribute.NORMAL_FILE.getValue());
+        }
+        for (int i = 0; i < 7; i++) {
+            String res = fileSystem.readFile("/" + (char) ('a' + i) + ".tx", EntryAttribute.NORMAL_FILE.getValue());
+            System.out.println("here "+res);
+        }
 
-        fileSystem.createFile("1.tx", EntryAttribute.NORMAL_FILE.getValue());
-        String res4 =fileSystem.changeFileAttribute("1.tx", EntryAttribute.READ_ONLY.getValue());
-        System.out.println(fileSystem.getFileInfo("1.tx")[6]);
-        String res6 =fileSystem.writeFile("1.tx", new byte[]{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}, 10);
-        System.out.println(res6);
 
-        String res5 = fileSystem.readFile("1.tx", 10);
-        System.out.println(res5);
+//        // 创建文件夹
+//        String res2 = fileSystem.createDir("2", EntryAttribute.DIRECTORY.getValue());
+//        System.out.println(res2);
+//
+//        String res3 = fileSystem.deleteFile("1.tx");
+//        System.out.println(res3);
+//
+//        fileSystem.createFile("1.tx", EntryAttribute.NORMAL_FILE.getValue());
+//        String res4 =fileSystem.changeFileAttribute("1.tx", EntryAttribute.READ_ONLY.getValue());
+//        System.out.println(fileSystem.getFileInfo("1.tx")[6]);
+//        String res6 =fileSystem.writeFile("1.tx", new byte[]{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}, 10,false);
+//        System.out.println(res6);
+//
+//        String res5 = fileSystem.readFile("1.tx", 10);
+//        System.out.println(res5);
         fileSystem.debug_printDisk();
         fileSystem.debug_rootDir();
     }

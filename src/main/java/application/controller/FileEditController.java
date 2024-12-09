@@ -56,7 +56,7 @@ public class FileEditController {
         String content = contentArea.getText();
         byte[] contentBytes = content.getBytes();
         
-        String result = fileSystem.writeFile(fullPath, contentBytes, contentBytes.length);
+        String result = fileSystem.writeFile(fullPath, contentBytes, contentBytes.length, true);
         
         if (result.equals("1")) {
             Stage stage = (Stage) saveButton.getScene().getWindow();
