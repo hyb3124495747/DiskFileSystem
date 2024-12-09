@@ -126,6 +126,7 @@ public class FileSystem {// 目录项操作类
      */
     public String closeFile(String fileAbsolutePath) {
         try {
+            System.out.println("关闭文件");
             // 调用文件操作类关闭文件，并检查结果
             int result = fileOperator.closeFile(fileAbsolutePath);
             return Tools.checkResult(result);

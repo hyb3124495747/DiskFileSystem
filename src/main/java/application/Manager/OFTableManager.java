@@ -1,7 +1,6 @@
 package application.Manager;
 
 import application.Entity.OFTLE;
-import application.Entity.Pointer;
 
 import java.util.ArrayList;
 
