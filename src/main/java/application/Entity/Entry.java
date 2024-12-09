@@ -52,6 +52,14 @@ public class Entry {
         return name;
     }
 
+    public void setName(byte[] name) {
+        this.name = name;
+    }
+
+    public void setType(byte[] type) {
+        this.type = type;
+    }
+
     public byte[] getType() {
         return type;
     }

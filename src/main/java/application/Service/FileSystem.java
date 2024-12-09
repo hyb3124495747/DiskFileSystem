@@ -83,13 +83,31 @@ public class FileSystem {// 目录项操作类
         }
     }
 
-     /**
+    /**
+     * 写入文件内容，写完自动调用closeFile
+     *
+     * @param fileAbsolutePath 文件完整路径
+     * @param writeData        存放准备写入磁盘的数据
+     * @param writeLength      写长度
+     */
+    public String writeFile(String fileAbsolutePath, byte[] writeData, int writeLength) {
+        try {
+            // 调用文件操作类写入文件，并检查结果
+            int result = fileOperator.writeFile(fileAbsolutePath, writeData, writeLength);
+            return Tools.checkResult(result);
+        } catch (Exception e) {
+            Tools.logError("Error writing file: " + e.getMessage(), this.LOG_FILE_NAME); //输出错误信息到日志文件
+            return "ERROR: Unknown error occurred.";
+        }
+    }
+
+    /**
      * 关闭文件
      *
      * @param fileAbsolutePath 文件名（含路径）
      * @return 关闭成功返回 1， 文件不存在返回 -1
      */
-     public String closeFile(String fileAbsolutePath) {
+    public String closeFile(String fileAbsolutePath) {
         try {
             // 调用文件操作类关闭文件，并检查结果
             int result = fileOperator.closeFile(fileAbsolutePath);
@@ -138,6 +156,7 @@ public class FileSystem {// 目录项操作类
      *
      * @param fileAbsolutePath 文件完整路径
      * @param newAttribute     新属性
+     * @return 成功返回null
      */
     public String changeFileAttribute(String fileAbsolutePath, byte newAttribute) {
         try {
@@ -146,6 +165,24 @@ public class FileSystem {// 目录项操作类
             return Tools.checkResult(result);
         } catch (Exception e) {
             Tools.logError("Error changing file attribute: " + e.getMessage(), this.LOG_FILE_NAME); //输出错误信息到日志文件
+            return "ERROR: Unknown error occurred.";
+        }
+    }
+
+    /**
+     * 改变文件名
+     *
+     * @param fileAbsolutePath 文件完整路径
+     * @param newNameAndType   新的文件名
+     * @return 成功返回null
+     */
+    public String changeFileName(String fileAbsolutePath, String newNameAndType) {
+        try {
+            // 调用文件操作类修改文件名，并检查结果
+            int result = fileOperator.changeFileName(fileAbsolutePath, newNameAndType);
+            return Tools.checkResult(result);
+        } catch (Exception e) {
+            Tools.logError("Error changing file name: " + e.getMessage(), this.LOG_FILE_NAME); //输出错误信息到日志文件
             return "ERROR: Unknown error occurred.";
         }
     }
@@ -270,7 +307,7 @@ public class FileSystem {// 目录项操作类
         );
         String nameOnly = pathComponents[pathComponents.length - 1];
         try {
-            if (dirOperator.isDirExist(parentDirName)){
+            if (dirOperator.isDirExist(parentDirName)) {
                 String[][] nameResult = dirOperator.listDir(parentDirName);
                 for (String[] entry : nameResult) {
                     if (entry[0].equals(nameOnly))

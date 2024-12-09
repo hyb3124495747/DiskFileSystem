@@ -9,6 +9,7 @@ import application.Enum.EntryStructure;
 import application.Manager.DiskManager;
 import application.Manager.OFTableManager;
 
+import java.io.RandomAccessFile;
 import java.util.Arrays;
 import java.util.Objects;
 
@@ -136,11 +137,10 @@ public class FileOperator {
      * @return 读取的内容，如果文件不存在或无法读取，则返回错误信息
      */
     public String readFile(String fileAbsolutePath, int readLength) throws Exception {
-        // 获取父目录盘块号和文件名，以检查父目录是否存在
         String[] fileInfo = getFileInfo(fileAbsolutePath);
         int entryStartNum = Integer.parseInt(fileInfo[2]);
 
-        // 检查文件是否已打开
+        // 检查文件是否已打开，同时可检查文件是否存在
         OFTLE ofTle = ofTableManager.find(entryStartNum);
         if (ofTle == null) {
             // 文件未打开，尝试以只读打开文件
@@ -185,50 +185,65 @@ public class FileOperator {
      * 写入文件内容
      *
      * @param fileAbsolutePath 文件完整路径
-     * @param writeData 存放准备写入磁盘信息的缓冲
-     * @param writeLength 写长度
-     * @return 写入成功返回 true，失败返回 false
+     * @param writeData        存放准备写入磁盘的数据
+     * @param writeLength      写长度
+     * @return 写入成功返回 1，失败返回对应错误码
      */
-    public boolean writeFile(String fileAbsolutePath, byte[] writeData, int writeLength) throws Exception {
-        // 获取父目录盘块号和文件名，以检查父目录是否存在
+    public int writeFile(String fileAbsolutePath, byte[] writeData, int writeLength) throws Exception {
         String[] fileInfo = getFileInfo(fileAbsolutePath);
-        String fileNameOnly = fileInfo[0];
-        int parentDirBlockIndex = Integer.parseInt(fileInfo[1]);
         int entryStartNum = Integer.parseInt(fileInfo[2]);
 
-        // 检查文件是否已打开
+        // 检查文件是否已打开，同时可检查文件是否存在
         OFTLE ofTle = ofTableManager.find(entryStartNum);
         if (ofTle == null) {
             // 文件未打开，尝试以写方式打开文件
             int result = openFile(fileAbsolutePath, "w");
             if (result != 1) {
-                return false; // 打开文件失败
+                return result; // 打开文件失败
             }
         }
         ofTle = ofTableManager.find(entryStartNum);
 
         // 检查文件是否以写方式打开
         if (ofTle.getOperateFlag() != 1 && ofTle.getOperateFlag() != 2) {
-            return false; // 文件未以写方式打开
+            return 0;
         }
 
         // 获取写指针
         Pointer writePointer = ofTle.getWrite();
-        int writePointerDNum = writePointer.getdNum();
         int writePointerBNum = writePointer.getbNum();
-
+        int curBlockIndex = writePointer.getdNum();
+        int bytesWritten = 0;
         // 写入文件内容
-        while (writePointerBNum < writeLength) {
-            int blockIndex = writePointerDNum;
-            byte[] blockData = this.entryOperator.getContentFromBlock(blockIndex);
-            int bytesToWrite = Math.min(writeLength - writePointerBNum, blockData.length - writePointerBNum);
-            System.arraycopy(writeData, writePointerBNum, blockData, writePointerBNum, bytesToWrite);
-            this.entryOperator.setContentToEntry(blockIndex, blockData);
-            writePointerDNum++;
-            writePointerBNum = 0;
-        }
+        while (bytesWritten < writeLength) {
+            byte[] blockData = this.entryOperator.getContentFromBlock(curBlockIndex);
+            // 检查当前块是否有足够的空间写入数据
+            while (writePointerBNum < blockData.length && bytesWritten < writeLength) {
+                blockData[writePointerBNum] = writeData[bytesWritten];
+                writePointerBNum++;
+                bytesWritten++;
+            }
+            // 将修改后的数据写回块中
+            this.entryOperator.setContentToEntry(curBlockIndex, blockData);
 
-        return true; // 写入成功
+            // 检查是否需要移动到下一个块
+            if (writePointerBNum >= blockData.length) {
+                curBlockIndex = this.entryOperator.getNextBlockIndex(curBlockIndex);
+                if (curBlockIndex == -1) {
+                    // 如果没有下一个块，需要请求新的块
+                    curBlockIndex = this.entryOperator.allocateDiskBlock();
+                }
+                writePointerBNum = 0; // 重置为新块的开始位置
+            }
+        }
+        // 最后更新写指针的位置
+        writePointer.setdNum(curBlockIndex);
+        writePointer.setbNum(writePointerBNum);
+        ofTle.setWrite(writePointer);
+        // 关闭文件
+        closeFile(fileAbsolutePath);
+
+        return 1;
     }
 
     /**
@@ -264,14 +279,13 @@ public class FileOperator {
             byte[] content = this.entryOperator.getContentFromBlock(dNum);
             content[bNum] = BlockStatus.EOF.getValue();
             // 更新写指针
-            targetOftle.setWrite(new Pointer(dNum, bNum + 1));
+            targetOftle.setWrite(new Pointer(dNum, bNum));
             this.entryOperator.setContentToEntry(dNum, content);
         }
         // 从已打开文件表中删除对应项
         this.ofTableManager.remove(targetOftle);
         return 1;
     }
-
 
     /**
      * 删除文件
@@ -343,7 +357,7 @@ public class FileOperator {
      *
      * @param fileAbsolutePath 文件完整路径
      * @param newAttribute     新的文件属性
-     * @return 1:成功， -1:文件不存在，-2：文件重名 ，-6:文件已打开
+     * @return 1:成功， -1:文件不存在 ，-6:文件已打开
      */
     public int changeFileAttribute(String fileAbsolutePath, byte newAttribute) throws Exception {
         // 获取父目录盘块号和文件名，以检查父目录是否存在
@@ -365,6 +379,48 @@ public class FileOperator {
 
         // 改变文件属性
         existingEntry.setAttribute(newAttribute);
+        this.entryOperator.setEntryToDirectory(parentDirBlockIndex, existingEntry);
+        return 1;
+    }
+
+    /**
+     * 改变文件名
+     *
+     * @param fileAbsolutePath 文件完整路径
+     * @param newNameAndType   新的文件名
+     * @return 1:成功， -1:文件不存在，-2：文件重名， -5：文件名不合法 ，-6:文件已打开
+     */
+    public int changeFileName(String fileAbsolutePath, String newNameAndType) throws Exception {
+        String[] fileInfo = getFileInfo(fileAbsolutePath);
+        String fileNameOnly = fileInfo[0];
+        int parentDirBlockIndex = Integer.parseInt(fileInfo[1]);
+        // 寻找该登记项
+        Entry existingEntry = this.entryOperator.findEntryInDirectory(
+                parentDirBlockIndex,
+                fileNameOnly,
+                EntryAttribute.NORMAL_FILE.getValue()
+        );
+        if (existingEntry == null) return -1; // 文件不存在
+
+        // 检查文件名（含type）
+        byte[][] nameAndType = Tools.checkNameAndType(newNameAndType, false);
+        if (nameAndType == null) {
+            return -5;
+        }
+        // 分离文件名和类型
+        byte[] newFileNameBytes = new byte[EntryStructure.NAME_LENGTH.getValue()];
+        byte[] newFileType = new byte[EntryStructure.TYPE_LENGTH.getValue()];
+        System.arraycopy(nameAndType[0], 0, newFileNameBytes, 0, newFileNameBytes.length);
+        System.arraycopy(nameAndType[1], 0, newFileType, 0, newFileType.length);
+
+        // 检查文件是否已打开
+        if (ofTableManager.find(existingEntry.getStartNum()) != null) {
+            return -6;
+        }
+
+        // 改变文件属性
+        existingEntry.setName(newFileNameBytes);
+        existingEntry.setType(newFileType);
         this.entryOperator.setEntryToDirectory(parentDirBlockIndex, existingEntry);
         return 1;
     }
