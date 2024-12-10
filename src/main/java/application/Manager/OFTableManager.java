@@ -26,6 +26,7 @@ public class OFTableManager {
         if (this.oftleList.size() >= maxLength) return -9;
         if (find(newOftle.getStartNum()) != null) return -6;
         else {
+            System.out.println("add");
             oftleList.add(newOftle);
             return 1;
         }

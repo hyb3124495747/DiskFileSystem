@@ -601,7 +601,7 @@ public class MainController {
             controller.setReadOnly(readOnly);
             controller.setFileName(file.name);
             
-            String content = fileSystem.readFile(fullPath,EntryAttribute.NORMAL_FILE.getValue());
+            String content = fileSystem.typeFile(fullPath);
 
 //            if(content.contains("File open failed, and ")){
 //                return;

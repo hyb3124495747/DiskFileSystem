@@ -134,8 +134,11 @@ public class FileOperator {
         String[] fileInfo = getFileInfo(fileAbsolutePath);
         int entryStartNum = Integer.parseInt(fileInfo[2]);
 
+        System.out.println("--------"+this.ofTableManager.getOftleList().size());
         int result = openFile(fileAbsolutePath, "r");
-        if (result != 1 && result != -6) {
+        System.out.println("--------"+this.ofTableManager.getOftleList().size());
+        if (result != 1) {
+            System.out.println("read"+result);
             throw new Exception("File open failed, and " + Tools.checkResult(result));
         }
         OFTLE ofTle = ofTableManager.find(entryStartNum);
@@ -187,6 +190,7 @@ public class FileOperator {
 
         int result = openFile(fileAbsolutePath, "rw");
         if (result != 1) {
+            System.out.println("write"+result);
             return result;
         }
         OFTLE ofTle = ofTableManager.find(entryStartNum);
@@ -233,7 +237,6 @@ public class FileOperator {
         ofTle.setWrite(writePointer);
         // 关闭文件
         closeFile(fileAbsolutePath);
-//        System.out.println(this.ofTableManager.getOftleList().size());
         return 1;
     }
 
@@ -244,11 +247,11 @@ public class FileOperator {
      * @return 关闭成功返回 1
      */
     public int closeFile(String fileAbsolutePath) throws Exception {
-                System.out.println("--------"+this.ofTableManager.getOftleList().size());
         // 获取父目录盘块号和文件名，以检查父目录是否存在
         String[] fileInfo = getFileInfo(fileAbsolutePath);
         String fileNameOnly = fileInfo[0];
         int parentDirBlockIndex = Integer.parseInt(fileInfo[1]);
+        int startBlockIndex = Integer.parseInt(fileInfo[2]);
 
         // 寻找该登记项
         Entry fileEntry = this.entryOperator.findEntryInDirectory(
@@ -274,9 +277,12 @@ public class FileOperator {
             targetOftle.setWrite(new Pointer(dNum, bNum));
             this.entryOperator.setContentToEntry(dNum, content);
         }
+        Pointer readPointer = targetOftle.getRead();
+        readPointer.setdNum(startBlockIndex);
+        readPointer.setbNum(0);
+        targetOftle.setRead(readPointer);
         // 从已打开文件表中删除对应项
         this.ofTableManager.remove(targetOftle);
-                System.out.println("--------"+this.ofTableManager.getOftleList().size());
         return 1;
     }
 
