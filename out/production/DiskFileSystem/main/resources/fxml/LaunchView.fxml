@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.image.Image?>
+<?import javafx.geometry.Insets?>
+
+<VBox spacing="30.0" 
+      style="-fx-background-color: linear-gradient(to bottom right, #f8f9fa, #e9ecef);"
+      xmlns:fx="http://javafx.com/fxml/1" xmlns="http://javafx.com/javafx/8"
+      fx:controller="application.controller.LaunchController"
+      prefWidth="400" prefHeight="200">
+    <padding>
+        <Insets top="20" right="20" bottom="20" left="20"/>
+    </padding>
+    
+    <HBox spacing="20.0" alignment="TOP_LEFT">
+        <!-- 文件系统按钮 -->
+        <Button fx:id="diskButton" onAction="#handleDiskButton" 
+                prefWidth="120" prefHeight="120"
+                style="-fx-background-color: white;
+                       -fx-background-radius: 10;
+                       -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 10, 0, 0, 0);">
+            <graphic>
+                <VBox alignment="CENTER" spacing="10">
+                    <ImageView fitHeight="60.0" fitWidth="60.0">
+                        <Image url="@../image/disk.png"/>
+                    </ImageView>
+                    <Label text="文件系统" 
+                           style="-fx-font-size: 14px;
+                                  -fx-font-weight: bold;
+                                  -fx-text-fill: #2C3E50;"/>
+                </VBox>
+            </graphic>
+        </Button>
+        
+        <!-- 磁盘状态按钮 -->
+        <Button fx:id="statusButton" onAction="#handleStatusButton"
+                prefWidth="120" prefHeight="120"
+                style="-fx-background-color: white;
+                       -fx-background-radius: 10;
+                       -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 10, 0, 0, 0);">
+            <graphic>
+                <VBox alignment="CENTER" spacing="10">
+                    <ImageView fitHeight="60.0" fitWidth="60.0">
+                        <Image url="@../image/status.png"/>
+                    </ImageView>
+                    <Label text="磁盘状态" 
+                           style="-fx-font-size: 14px;
+                                  -fx-font-weight: bold;
+                                  -fx-text-fill: #2C3E50;"/>
+                </VBox>
+            </graphic>
+        </Button>
+    </HBox>
+    
+    <!-- 版权信息 -->
+    <Label text="© 2024 File System Manager" 
+           style="-fx-font-size: 12px;
+                  -fx-text-fill: #6c757d;">
+        <VBox.margin>
+            <Insets top="200"/>
+        </VBox.margin>
+    </Label>
+</VBox> 

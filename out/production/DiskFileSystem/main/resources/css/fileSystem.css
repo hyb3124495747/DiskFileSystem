@@ -1,0 +1,75 @@
+/* 根容器样式 */
+.root {
+    -fx-font-family: "Microsoft YaHei", "Segoe UI", system-ui;
+}
+
+/* 按钮基础样式 */
+.button {
+    -fx-cursor: hand;
+    -fx-transition-duration: 0.2s;
+}
+
+/* 返回上级按钮悬停效果 */
+.button:hover {
+    -fx-background-color: #43A047 !important;
+    -fx-effect: dropshadow(three-pass-box, rgba(76,175,80,0.4), 5, 0, 0, 2) !important;
+}
+
+/* 路径显示框样式 */
+.text-field {
+    -fx-font-size: 14px;
+}
+
+/* 内容区域样式 */
+.content-area {
+    -fx-background-color: white;
+    -fx-background-radius: 8;
+}
+
+/* 文件/文件夹图标样式 */
+.file-icon {
+    -fx-background-radius: 5;
+    -fx-cursor: hand;
+}
+
+.file-icon:hover {
+    -fx-background-color: #f8f9fa;
+}
+
+.file-icon:pressed {
+    -fx-background-color: #e9ecef;
+}
+
+/* 右键菜单样式 */
+.context-menu {
+    -fx-background-color: white;
+    -fx-background-radius: 6;
+    -fx-padding: 5;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 10, 0, 0, 0);
+}
+
+.menu-item {
+    -fx-padding: 8 15;
+}
+
+.menu-item:focused {
+    -fx-background-color: #f8f9fa;
+    -fx-background-radius: 4;
+}
+
+.menu-item > .label {
+    -fx-text-fill: #495057;
+}
+
+.menu-item:focused > .label {
+    -fx-text-fill: #2196F3;
+}
+
+.separator {
+    -fx-padding: 3 0;
+}
+
+.separator .line {
+    -fx-border-color: #e9ecef;
+    -fx-border-width: 0.5;
+} 
