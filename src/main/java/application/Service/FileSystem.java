@@ -95,13 +95,12 @@ public class FileSystem {// 目录项操作类
             return fileOperator.readFile(fileAbsolutePath, readLength);
         } catch (Exception e) {
             Tools.logError("Error reading file: " + e.getMessage(), this.LOG_FILE_NAME); //输出错误信息到日志文件
-//            throw new RuntimeException(e);
-            return "ERROR: Unknown error occurred.";
+            throw new RuntimeException(e);
         }
     }
 
     /**
-     * 写入文件内容，写完自动调用closeFile
+     * 写入文件内容
      *
      * @param fileAbsolutePath 文件完整路径
      * @param writeData        存放准备写入磁盘的数据
@@ -115,8 +114,7 @@ public class FileSystem {// 目录项操作类
             return Tools.checkResult(result);
         } catch (Exception e) {
             Tools.logError("Error writing file: " + e.getMessage(), this.LOG_FILE_NAME); //输出错误信息到日志文件
-//            throw new RuntimeException(e);
-            return "ERROR: Unknown error occurred.";
+            throw new RuntimeException(e);
         }
     }
 

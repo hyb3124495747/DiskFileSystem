@@ -600,7 +600,7 @@ public class MainController {
             controller.setReadOnly(readOnly);
             controller.setFileName(file.name);
             
-            String content = fileSystem.readFile(currentPath + file.name, 10);
+            String content = fileSystem.readFile(currentPath + file.name, 100);
             controller.setContent(content, currentPath + file.name);
             
             Stage stage = new Stage();

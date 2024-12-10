@@ -134,11 +134,9 @@ public class FileOperator {
         String[] fileInfo = getFileInfo(fileAbsolutePath);
         int entryStartNum = Integer.parseInt(fileInfo[2]);
 
-        System.out.println("--------"+this.ofTableManager.getOftleList().size());
         int result = openFile(fileAbsolutePath, "r");
-        System.out.println("--------"+this.ofTableManager.getOftleList().size());
         if (result != 1) {
-            System.out.println("read"+result);
+            System.out.println("read" + result);
             throw new Exception("File open failed, and " + Tools.checkResult(result));
         }
         OFTLE ofTle = ofTableManager.find(entryStartNum);
@@ -158,8 +156,6 @@ public class FileOperator {
             byte[] blockData = this.entryOperator.getContentFromBlock(curBlockIndex);
             for (; readPointer.getbNum() < blockData.length; readPointer.setbNum(readPointer.getbNum() + 1)) {
                 if (blockData[readPointer.getbNum()] == BlockStatus.EOF.getValue()) {
-                    System.out.println("--------"+this.ofTableManager.getOftleList().size());
-                    System.out.println("++++++");
                     return new String(fileContent).trim();
                 }
                 fileContent[bytesRead++] = blockData[readPointer.getbNum()];
@@ -172,13 +168,6 @@ public class FileOperator {
             readPointer.setbNum(0);
         }
         ofTle.setRead(readPointer);
-        System.out.println("打开文件的调用文件关闭");
-        int res = closeFile(fileAbsolutePath);
-        if (res !=1 ){
-            System.out.println("打开文件的调用文件关闭失败");
-        }else{
-            System.out.println("打开文件的调用文件关闭成功");
-        }
         return new String(fileContent).trim();
     }
 
@@ -197,9 +186,8 @@ public class FileOperator {
         int entryStartNum = Integer.parseInt(fileInfo[2]);
 
         int result = openFile(fileAbsolutePath, "rw");
-        if (result != 1) {
-            System.out.println("write"+result);
-            return result;
+        if (result != 1 && result != -6) {
+            throw new Exception("File open failed, and " + Tools.checkResult(result));
         }
         OFTLE ofTle = ofTableManager.find(entryStartNum);
 
@@ -243,8 +231,6 @@ public class FileOperator {
         writePointer.setdNum(curBlockIndex);
         writePointer.setbNum(writePointerBNum);
         ofTle.setWrite(writePointer);
-        // 关闭文件
-        closeFile(fileAbsolutePath);
         return 1;
     }
 
@@ -255,7 +241,7 @@ public class FileOperator {
      * @return 关闭成功返回 1
      */
     public int closeFile(String fileAbsolutePath) throws Exception {
-        System.out.println("--------"+this.ofTableManager.getOftleList().size());
+        System.out.println("--------" + this.ofTableManager.getOftleList().size());
         // 获取父目录盘块号和文件名，以检查父目录是否存在
         String[] fileInfo = getFileInfo(fileAbsolutePath);
         String fileNameOnly = fileInfo[0];
@@ -274,7 +260,7 @@ public class FileOperator {
         } // 文件不存在
 
         // 文件未打开
-        System.out.println("--------"+this.ofTableManager.getOftleList().size());
+        System.out.println("--------" + this.ofTableManager.getOftleList().size());
         OFTLE targetOftle = ofTableManager.find(fileAbsolutePath);
         if (targetOftle == null) return 1;
 
@@ -437,8 +423,8 @@ public class FileOperator {
 
         int entryOffset = this.entryOperator.getEntryOffset(parentDirBlockIndex, existingEntry);
         byte[] tmp = this.entryOperator.getContentFromBlock(parentDirBlockIndex);
-        System.arraycopy(newFileNameBytes, 0, tmp, entryOffset * 8, newFileNameBytes.length);
-        System.arraycopy(newFileType, 0, tmp, entryOffset * 8 + EntryStructure.TYPE_POS.getValue(), newFileType.length);
+        System.arraycopy(newFileNameBytes, 0, tmp, entryOffset, newFileNameBytes.length);
+        System.arraycopy(newFileType, 0, tmp, entryOffset + EntryStructure.TYPE_POS.getValue(), newFileType.length);
         this.entryOperator.setContentToEntry(parentDirBlockIndex, tmp);
         return 1;
     }

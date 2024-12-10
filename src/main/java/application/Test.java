@@ -91,17 +91,17 @@ public class Test {
         String res1 = fileSystem.createFile("1.tx", EntryAttribute.NORMAL_FILE.getValue());
         System.out.println(res1);
 
-        // 打开文件
-        System.out.println(fileSystem.readFile("1.tx", 10));
-        String res2 = fileSystem.writeFile("1.tx", "abc".getBytes(), 2,true);
-        System.out.println(fileSystem.closeFile("1.tx"));
-        System.out.println(fileSystem.closeFile("1.tx"));
-        //再次打开
-//        fileSystem.writeFile("1.tx", "abc".getBytes(), 2,true);
-        System.out.println(fileSystem.readFile("1.tx", 10));
+//        // 打开文件
+//        System.out.println(fileSystem.readFile("1.tx", 10));
+//        String res2 = fileSystem.writeFile("1.tx", "abc".getBytes(), 2,true);
+//        System.out.println(fileSystem.closeFile("1.tx"));
+//        System.out.println(fileSystem.closeFile("1.tx"));
+//        //再次打开
+////        fileSystem.writeFile("1.tx", "abc".getBytes(), 2,true);
+//        System.out.println(fileSystem.readFile("1.tx", 10));
         //重命名
         System.out.println(fileSystem.closeFile("1.tx"));
-        System.out.println(fileSystem.changeFileName("1.tx", "2.tx"));
+        System.out.println(fileSystem.changeFileName("/1.tx", "2.tx"));
 
 //        // 创建文件夹
 //        String res2 = fileSystem.createDir("2", EntryAttribute.DIRECTORY.getValue());

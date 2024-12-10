@@ -95,4 +95,16 @@ public class OFTLE {
     public void setWrite(Pointer write) {
         this.write = write;
     }
+
+    public void setOperateFlag(String operateFlag) {
+        switch (operateFlag) {
+            case "r":
+                this.operateFlag = 0; break;
+            case "w":
+                this.operateFlag = 1; break;
+            case "rw":
+                // 读写类型的赋值逻辑和默认值一致
+            default: this.operateFlag = 2;
+        }
+    }
 }

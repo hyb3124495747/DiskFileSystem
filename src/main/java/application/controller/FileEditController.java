@@ -80,9 +80,18 @@ public class FileEditController {
     private void handleSave() {
         String content = contentArea.getText();
         byte[] contentBytes = content.getBytes();
-        
-        String result = fileSystem.writeFile(fullPath, contentBytes, contentBytes.length, true);
-        
+
+        String result = fileSystem.closeFile(fullPath);
+        if (!result.equals("1")) {
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle("关闭失败");
+            alert.setHeaderText(null);
+            alert.setContentText("文件关闭失败: " + result);
+            alert.showAndWait();
+            return;
+        }
+        result = fileSystem.writeFile(fullPath, contentBytes, contentBytes.length, true);
+
         if (result.equals("1")) {
             if (fullPath != null) {
                 String closeResult = fileSystem.closeFile(fullPath);
