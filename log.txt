@@ -1,0 +1,2 @@
+Error reading file: 10
+Error reading file: File open failed, and ERROR: Too many files opened.

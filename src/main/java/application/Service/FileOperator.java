@@ -158,6 +158,8 @@ public class FileOperator {
             byte[] blockData = this.entryOperator.getContentFromBlock(curBlockIndex);
             for (; readPointer.getbNum() < blockData.length; readPointer.setbNum(readPointer.getbNum() + 1)) {
                 if (blockData[readPointer.getbNum()] == BlockStatus.EOF.getValue()) {
+                    System.out.println("--------"+this.ofTableManager.getOftleList().size());
+                    System.out.println("++++++");
                     return new String(fileContent).trim();
                 }
                 fileContent[bytesRead++] = blockData[readPointer.getbNum()];
@@ -170,7 +172,13 @@ public class FileOperator {
             readPointer.setbNum(0);
         }
         ofTle.setRead(readPointer);
-        closeFile(fileAbsolutePath);
+        System.out.println("打开文件的调用文件关闭");
+        int res = closeFile(fileAbsolutePath);
+        if (res !=1 ){
+            System.out.println("打开文件的调用文件关闭失败");
+        }else{
+            System.out.println("打开文件的调用文件关闭成功");
+        }
         return new String(fileContent).trim();
     }
 
@@ -247,6 +255,7 @@ public class FileOperator {
      * @return 关闭成功返回 1
      */
     public int closeFile(String fileAbsolutePath) throws Exception {
+        System.out.println("--------"+this.ofTableManager.getOftleList().size());
         // 获取父目录盘块号和文件名，以检查父目录是否存在
         String[] fileInfo = getFileInfo(fileAbsolutePath);
         String fileNameOnly = fileInfo[0];
@@ -259,10 +268,14 @@ public class FileOperator {
                 fileNameOnly,
                 EntryAttribute.NORMAL_FILE.getValue()
         );
-        if (fileEntry == null) return -1; // 文件不存在
+        if (fileEntry == null) {
+            System.out.println("关闭失败");
+            return -1;
+        } // 文件不存在
 
         // 文件未打开
-        OFTLE targetOftle = ofTableManager.find(fileEntry.getStartNum());
+        System.out.println("--------"+this.ofTableManager.getOftleList().size());
+        OFTLE targetOftle = ofTableManager.find(fileAbsolutePath);
         if (targetOftle == null) return 1;
 
         // 如果是以写方式打开的，追加文件结束符并更新目录项

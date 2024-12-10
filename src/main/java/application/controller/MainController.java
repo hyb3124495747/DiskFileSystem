@@ -227,11 +227,20 @@ public class MainController {
     }
 
     /**
-     * 创��文件
+     * 创建文件
      */
     private void handleCreateFile() {
         Dialog<String> dialog = createCustomDialog("创建文件", "请输入文件名");
         dialog.showAndWait().ifPresent(fileName -> {
+            String[] str = fileName.split("\\.");
+
+            StringBuilder sb = new StringBuilder(fileName);
+            if(str.length<2){
+                sb.append(".tx");
+                fileName = sb.toString();
+            }
+
+
             String s = currentPath;
             // 构建完整路径，使用 Unix 风格的路径
             String fullPath = s +fileName; // 直接使用 Unix 风格的路径
@@ -586,38 +595,19 @@ public class MainController {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/FileEditView.fxml"));
             Parent root = loader.load();
 
-            String fullPath = currentPath + file.name;
-
-            String[] fileInfo = fileSystem.getFileInfo(fullPath);
-            String s = fileInfo[6];
-            System.out.println(s);
-
-            if(s.equals("1") && !readOnly){
-                System.out.println("文件为只读，只能以只读方式打开");
-                return;
-            }
-
             FileEditController controller = loader.getController();
+            controller.setFileSystem(this.fileSystem); // Set the shared FileSystem instance
             controller.setReadOnly(readOnly);
             controller.setFileName(file.name);
             
-            String content = fileSystem.typeFile(fullPath);
-
-//            if(content.contains("File open failed, and ")){
-//                return;
-//            }
-
-            controller.setContent(content,fullPath);
+            String content = fileSystem.readFile(currentPath + file.name, 10);
+            controller.setContent(content, currentPath + file.name);
             
             Stage stage = new Stage();
             stage.setTitle((readOnly ? "只读 - " : "") + file.name);
             stage.setScene(new Scene(root, 600, 400));
-            
-            // 将模态类型改为 WINDOW_MODAL，这样只会阻止与父窗口的交互
-            // 而不会阻止与其他窗口的交互
             stage.initModality(Modality.NONE);
             
-            // 设置窗口在屏幕中央
             Rectangle2D screenBounds = Screen.getPrimary().getVisualBounds();
             stage.setX((screenBounds.getWidth() - 600) / 2);
             stage.setY((screenBounds.getHeight() - 400) / 2);

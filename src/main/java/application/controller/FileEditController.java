@@ -25,9 +25,13 @@ public class FileEditController {
     private FileSystem fileSystem;
     private Stage stage;
 
-    public FileEditController() {
-        this.fileSystem = new FileSystem();
-    }
+//    public FileEditController() {
+//        this.fileSystem = new FileSystem();
+//    }
+//
+//    public FileEditController(FileSystem fileSystem) {
+//        this.fileSystem = fileSystem;
+//    }
 
     @FXML
     public void initialize() {
@@ -96,8 +100,12 @@ public class FileEditController {
             Alert alert = new Alert(Alert.AlertType.ERROR);
             alert.setTitle("保存失败");
             alert.setHeaderText(null);
-            alert.setContentText("文件保存失败: " + result);
+            alert.setContentText("文件保��失败: " + result);
             alert.showAndWait();
         }
+    }
+
+    public void setFileSystem(FileSystem fileSystem) {
+        this.fileSystem = fileSystem;
     }
 } 

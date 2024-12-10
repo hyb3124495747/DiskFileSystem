@@ -130,6 +130,9 @@ public class FileSystem {// 目录项操作类
         try {
             // 调用文件操作类关闭文件，并检查结果
             int result = fileOperator.closeFile(fileAbsolutePath);
+//            if(result == 1){
+//                result = fileOperator.closeFile(fileAbsolutePath);
+//            }
             return Tools.checkResult(result);
         } catch (Exception e) {
             Tools.logError("Error closing file: " + e.getMessage(), this.LOG_FILE_NAME); //输出错误信息到日志文件

@@ -26,7 +26,7 @@ public class OFTableManager {
         if (this.oftleList.size() >= maxLength) return -9;
         if (find(newOftle.getStartNum()) != null) return -6;
         else {
-            System.out.println("add");
+            System.out.println(newOftle.getFilePath()+"添加到已打开文件表中");
             oftleList.add(newOftle);
             return 1;
         }
@@ -46,12 +46,23 @@ public class OFTableManager {
         return null;
     }
 
+    public OFTLE find(String filePath) {
+        System.out.println(oftleList.size());
+        for (OFTLE oftle : oftleList) {
+            if (oftle.getFilePath().equals(filePath)) {
+                return oftle;
+            }
+        }
+        return null;
+    }
+
     /**
      * 在已打开文件表中删除一个OFTLE项
      *
      * @param targetOftle 要删除的OFTLE
      */
     public void remove(OFTLE targetOftle) {
+        System.out.println(targetOftle.getFilePath()+"从已打开文件表中移除");
         this.oftleList.remove(targetOftle);
     }
 
@@ -64,6 +75,7 @@ public class OFTableManager {
     }
 
     public ArrayList<OFTLE> getOftleList() {
+        System.out.println(oftleList.size());
         return oftleList;
     }
 }
