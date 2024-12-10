@@ -44,11 +44,12 @@ public class DiskManager {
     }
 
     public List<Boolean> disk_status(){
+        System.out.println("获取磁盘状态");
         List<Boolean> list = new ArrayList<>();
         try (FileInputStream fis = new FileInputStream(diskFile)) {
             for (int i = 0; i < DISK_SIZE; i++) {
                 int read = fis.read();
-                if (read == 255){
+                if (read == 255 || read == -1){
                     list.add(true);
                 } else if (read == 0) {
                     list.add(false);

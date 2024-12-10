@@ -348,7 +348,7 @@ public class EntryOperator {
             setContentToEntry(parentDirBlockIndex, dirBlockData);
 
             // 回收磁盘块
-            while (diskManager.getFatEntry(dirBlockIndex) != BlockStatus.END_OF_FILE.getValue()) {
+            while (dirBlockIndex != BlockStatus.END_OF_FILE.getValue()) {
                 int nextBlockIndex = diskManager.getFatEntry(dirBlockIndex);
                 diskManager.setFatEntry(dirBlockIndex, BlockStatus.FREE.getValue());
                 dirBlockIndex = nextBlockIndex;

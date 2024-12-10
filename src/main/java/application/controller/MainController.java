@@ -261,7 +261,9 @@ public class MainController {
                     
                     // 通知知磁盘状态更新并刷新视图
                     if (success == 1) {
+                        System.out.println(111);
                         if (diskStatusObserver != null) {
+                            System.out.println("添加文件调用刷新视图");
                             diskStatusObserver.onDiskStatusChanged();
                         }
                         refreshFileView();
@@ -299,6 +301,7 @@ public class MainController {
                     // 通知磁盘状态更新并刷新视图
                     if (success == 1) {
                         if (diskStatusObserver != null) {
+                            System.out.println("添加文件夹调用刷新视图");
                             diskStatusObserver.onDiskStatusChanged();
                         }
                         refreshFileView();
@@ -644,10 +647,11 @@ public class MainController {
             String fullPath = s + file.name;
             System.out.println(fullPath);
             String deleteResult = fileSystem.deleteFile(fullPath);
-            
+
             if (deleteResult.equals("1")) {
                 showCustomAlert("成功", "文件删除成功!", null, Alert.AlertType.INFORMATION);
                 if (diskStatusObserver != null) {
+                    System.out.println("删除文件调用刷新视图");
                     diskStatusObserver.onDiskStatusChanged();
                 }
                 refreshFileView();
@@ -743,6 +747,7 @@ public class MainController {
             if (deleteResult.equals("1")) {
                 showCustomAlert("成功", "文件夹删除成功!", null, Alert.AlertType.INFORMATION);
                 if (diskStatusObserver != null) {
+                    System.out.println("删除文件夹调用刷新视图");
                     diskStatusObserver.onDiskStatusChanged();
                 }
                 refreshFileView();
