@@ -417,13 +417,41 @@ public class EntryOperator {
                 this.writeBuffer[entryOffset + EntryStructure.DISK_BLOCK_LENGTH_POS.getValue()] = targetEntry.getDiskBlockLength(); // 长度
 
                 // 将更新后的数据写回磁盘
-                System.out.println("************************ I am "+this.writeBuffer[entryOffset + EntryStructure.ATTRIBUTE_POS.getValue()]);
                 diskManager.writeBlock(parentDirBlockIndex, this.writeBuffer);
-                byte[] d = getContentFromBlock(parentDirBlockIndex);
-                System.out.println("************************ I am "+d[entryOffset + EntryStructure.ATTRIBUTE_POS.getValue()]);
                 break;
             }
         }
+    }
+
+    /**
+     * 获取登记项的磁盘块中偏移
+     * @param parentDirBlockIndex
+     * @param targetEntry
+     * @return
+     */
+    public int getEntryOffset(int parentDirBlockIndex, Entry targetEntry){
+        // 读取
+        byte[] dirBlockData = getContentFromBlock(parentDirBlockIndex);
+        String fileNameAndType = new String(targetEntry.getName()).trim() +"."+ new String(targetEntry.getType()).trim();
+
+        // 遍历目录块中的每个目录项
+        for (int entryOffset = 0; entryOffset < DiskManager.BLOCK_SIZE; entryOffset += this.entrySize) {
+            byte[] entry = Arrays.copyOfRange(dirBlockData, entryOffset, entryOffset + this.entrySize);
+            // 跳过空目录项
+            if (entry[0] == BlockStatus.EMPTY_ENTRY.getValue()) continue;
+
+            // 目录没有type，完整文件名为name + type
+            String entryName = "";
+            if (EntryAttribute.DIRECTORY.isEqual(entry[EntryStructure.ATTRIBUTE_POS.getValue()]))
+                entryName = new String(new byte[]{entry[0], entry[1], entry[2]}).trim();
+            else
+                entryName = new String(new byte[]{entry[0], entry[1], entry[2]}).trim() + "." + new String(new byte[]{entry[3], entry[4]}).trim();
+
+            if (entryName.equals(fileNameAndType)) {
+                return entryOffset;
+            }
+        }
+        return -1;
     }
 }
 

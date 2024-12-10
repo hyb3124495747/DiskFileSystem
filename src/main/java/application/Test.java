@@ -91,15 +91,17 @@ public class Test {
         String res1 = fileSystem.createFile("1.tx", EntryAttribute.NORMAL_FILE.getValue());
         System.out.println(res1);
 
-        // 创建7个文件并都打开
-        for (int i = 0; i < 7; i++) {
-            String res = fileSystem.createFile("/" + (char) ('a' + i) + ".tx", EntryAttribute.NORMAL_FILE.getValue());
-        }
-        for (int i = 0; i < 7; i++) {
-            String res = fileSystem.readFile("/" + (char) ('a' + i) + ".tx", EntryAttribute.NORMAL_FILE.getValue());
-            System.out.println("here "+res);
-        }
-
+        // 打开文件
+        System.out.println(fileSystem.readFile("1.tx", 10));
+        String res2 = fileSystem.writeFile("1.tx", "abc".getBytes(), 2,true);
+        System.out.println(fileSystem.closeFile("1.tx"));
+        System.out.println(fileSystem.closeFile("1.tx"));
+        //再次打开
+//        fileSystem.writeFile("1.tx", "abc".getBytes(), 2,true);
+        System.out.println(fileSystem.readFile("1.tx", 10));
+        //重命名
+        System.out.println(fileSystem.closeFile("1.tx"));
+        System.out.println(fileSystem.changeFileName("1.tx", "2.tx"));
 
 //        // 创建文件夹
 //        String res2 = fileSystem.createDir("2", EntryAttribute.DIRECTORY.getValue());
@@ -121,7 +123,7 @@ public class Test {
     }
 
     private static void start_test() {
-        String filePath = "D:\\code\\czxt\\disk-file-system\\disk.dat";
+        String filePath = "D:\\code\\Java\\OS\\DiskFileSystem\\disk.dat";
         File file = new File(filePath);
 
         // 检查文件是否存在并且可以删除

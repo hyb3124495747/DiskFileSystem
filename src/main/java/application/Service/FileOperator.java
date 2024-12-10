@@ -100,6 +100,7 @@ public class FileOperator {
      * @return 成功返回 1，只读文件以写方式打开返回0，文件路径不存在返回 -1，文件已打开-6，打开文件表已满-9
      */
     public int openFile(String fileAbsolutePath, String operateFlag) throws Exception {
+
         // 获取父目录盘块号和文件名，以检查父目录是否存在
         String[] fileInfo = getFileInfo(fileAbsolutePath);
         String fileNameOnly = fileInfo[0];
@@ -117,6 +118,7 @@ public class FileOperator {
         }
         OFTLE ofTle = new OFTLE(fileAbsolutePath, EntryAttribute.NORMAL_FILE.getValue(),
                 entryStartNum, entryEndNum, bytesLength, operateFlag);
+
         return this.ofTableManager.add(ofTle);
     }
 
@@ -133,14 +135,14 @@ public class FileOperator {
         int entryStartNum = Integer.parseInt(fileInfo[2]);
 
         int result = openFile(fileAbsolutePath, "r");
-        if (result != 1) {
-            return "File open failed, and " + Tools.checkResult(result);
+        if (result != 1 && result != -6) {
+            throw new Exception("File open failed, and " + Tools.checkResult(result));
         }
         OFTLE ofTle = ofTableManager.find(entryStartNum);
 
         // 检查文件是否以读方式打开
         if (ofTle.getOperateFlag() != 0) {
-            return "File is not opened in read mode.";
+            throw new Exception("File is not opened in read mode");
         }
 
         // 从已打开文件表中读出读指针，并从这个位置上读出所需长度
@@ -164,7 +166,9 @@ public class FileOperator {
             readPointer.setdNum(curBlockIndex);
             readPointer.setbNum(0);
         }
-        return "1";
+        ofTle.setRead(readPointer);
+        closeFile(fileAbsolutePath);
+        return new String(fileContent).trim();
     }
 
 
@@ -189,7 +193,7 @@ public class FileOperator {
 
         // 检查文件是否以写方式打开
         if (ofTle.getOperateFlag() != 1 && ofTle.getOperateFlag() != 2) {
-            return 0;
+            throw new Exception("File is not opened in write mode.");
         }
 
         // 获取写指针
@@ -229,7 +233,7 @@ public class FileOperator {
         ofTle.setWrite(writePointer);
         // 关闭文件
         closeFile(fileAbsolutePath);
-
+//        System.out.println(this.ofTableManager.getOftleList().size());
         return 1;
     }
 
@@ -240,6 +244,7 @@ public class FileOperator {
      * @return 关闭成功返回 1
      */
     public int closeFile(String fileAbsolutePath) throws Exception {
+                System.out.println("--------"+this.ofTableManager.getOftleList().size());
         // 获取父目录盘块号和文件名，以检查父目录是否存在
         String[] fileInfo = getFileInfo(fileAbsolutePath);
         String fileNameOnly = fileInfo[0];
@@ -271,6 +276,7 @@ public class FileOperator {
         }
         // 从已打开文件表中删除对应项
         this.ofTableManager.remove(targetOftle);
+                System.out.println("--------"+this.ofTableManager.getOftleList().size());
         return 1;
     }
 
@@ -405,10 +411,16 @@ public class FileOperator {
             return -6;
         }
 
-        // 改变文件属性
-        existingEntry.setName(newFileNameBytes);
-        existingEntry.setType(newFileType);
-        this.entryOperator.setEntryToDirectory(parentDirBlockIndex, existingEntry);
+        // 检查是否有重名文件
+        if (this.entryOperator.findEntryInDirectory(parentDirBlockIndex, newNameAndType, EntryAttribute.NORMAL_FILE.getValue()) != null) {
+            return -2;
+        }
+
+        int entryOffset = this.entryOperator.getEntryOffset(parentDirBlockIndex, existingEntry);
+        byte[] tmp = this.entryOperator.getContentFromBlock(parentDirBlockIndex);
+        System.arraycopy(newFileNameBytes, 0, tmp, entryOffset * 8, newFileNameBytes.length);
+        System.arraycopy(newFileType, 0, tmp, entryOffset * 8 + EntryStructure.TYPE_POS.getValue(), newFileType.length);
+        this.entryOperator.setContentToEntry(parentDirBlockIndex, tmp);
         return 1;
     }
 

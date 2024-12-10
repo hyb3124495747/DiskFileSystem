@@ -95,6 +95,7 @@ public class FileSystem {// 目录项操作类
             return fileOperator.readFile(fileAbsolutePath, readLength);
         } catch (Exception e) {
             Tools.logError("Error reading file: " + e.getMessage(), this.LOG_FILE_NAME); //输出错误信息到日志文件
+//            throw new RuntimeException(e);
             return "ERROR: Unknown error occurred.";
         }
     }
@@ -114,6 +115,7 @@ public class FileSystem {// 目录项操作类
             return Tools.checkResult(result);
         } catch (Exception e) {
             Tools.logError("Error writing file: " + e.getMessage(), this.LOG_FILE_NAME); //输出错误信息到日志文件
+//            throw new RuntimeException(e);
             return "ERROR: Unknown error occurred.";
         }
     }
@@ -126,7 +128,6 @@ public class FileSystem {// 目录项操作类
      */
     public String closeFile(String fileAbsolutePath) {
         try {
-            System.out.println("关闭文件");
             // 调用文件操作类关闭文件，并检查结果
             int result = fileOperator.closeFile(fileAbsolutePath);
             return Tools.checkResult(result);
