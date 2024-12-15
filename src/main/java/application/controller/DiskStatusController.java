@@ -102,4 +102,12 @@ public class DiskStatusController implements DiskStatusObserver {
     public void onDiskStatusChanged() {
         updateDiskStatus();
     }
+
+    @FXML
+    private void handleMarkDamagedBlock() {
+        if (!diskManager.disk_status().isEmpty()) {
+            diskManager.crippleBlock();
+            updateDiskStatus();
+        }
+    }
 } 

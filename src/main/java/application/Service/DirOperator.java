@@ -145,9 +145,8 @@ public class DirOperator {
      * 判断目录是否为空
      *
      * @param dirBlockIndex 目录盘块号
-     * @return
      */
-    public boolean isEmptyDir(int dirBlockIndex) throws Exception {
+    public boolean isEmptyDir(int dirBlockIndex){
         int currentBlockIndex = dirBlockIndex;
         // 遍历当前目录所占的所有盘块
         while (currentBlockIndex != BlockStatus.END_OF_FILE.getValue()) {
