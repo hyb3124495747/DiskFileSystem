@@ -36,6 +36,7 @@
     <HBox spacing="10">
         <Label text="磁盘块使用情况：" style="-fx-font-size: 14px; -fx-font-weight: bold;"/>
         <Button text="随机损坏磁盘块" onAction="#handleMarkDamagedBlock" />
+        <Button text="恢复磁盘块" onAction="#handleRecoverBlock" />
     </HBox>
     <TilePane fx:id="blockPane" hgap="2" vgap="2" prefColumns="16"/>
 </VBox> 

@@ -25,7 +25,7 @@ public class DiskManager {
     public void debug_printDisk() {
         try (FileInputStream fis = new FileInputStream(diskFile)) {
             for (int i = 0; i < DISK_SIZE; i++) {
-                System.out.print((byte)fis.read() + "\t");
+                System.out.print((byte) fis.read() + "\t");
                 if ((i + 1) % 16 == 0)
                     System.out.println();
             }
@@ -35,26 +35,27 @@ public class DiskManager {
     }
 
     public void debug_rootDir() {
-        byte[] rootDirBlock=readBlock(ROOT_DIR_POS);
+        byte[] rootDirBlock = readBlock(ROOT_DIR_POS);
         for (int i = 0; i < BLOCK_SIZE; i += 8) {
             byte[] entry = Arrays.copyOfRange(rootDirBlock, i, i + 8);
-            System.out.print((char) entry[0]+" ");
+            System.out.print((char) entry[0] + " ");
         }
         System.out.println();
     }
 
-    public List<Boolean> disk_status(){
+    public List<Boolean> disk_status() {
         System.out.println("获取磁盘状态");
         List<Boolean> list = new ArrayList<>();
         try (FileInputStream fis = new FileInputStream(diskFile)) {
             for (int i = 0; i < DISK_SIZE; i++) {
-                int read = fis.read();
-                if (read == 255 || read == -1){
+                byte read = (byte)fis.read();
+                if (BlockStatus.END_OF_FILE.isEqual(read) ||  BlockStatus.BAD_BLOCK.isEqual(read)) {
                     list.add(true);
-                } else if (read == 0) {
+                } else if (BlockStatus.FREE.isEqual(read) ) {
                     list.add(false);
                 }
             }
+            debug_printDisk();
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -81,8 +82,7 @@ public class DiskManager {
             formatDisk();
             // 保存当前FAT在内存中
             this.FAT = readFAT();
-        }
-        else {
+        } else {
             // 读取FAT
             this.FAT = readFAT();
         }
@@ -98,11 +98,10 @@ public class DiskManager {
             // 初始化FAT
             for (int i = 0; i < DISK_SIZE; i++) {
                 // 设置FAT中表示的各磁盘块的状态
-                if (i < USER_AREA_START){
+                if (i < USER_AREA_START) {
                     raf.seek(raf.length());
                     raf.write(BlockStatus.END_OF_FILE.getValue());
-                }
-                else{
+                } else {
                     raf.seek(raf.length());
                     raf.write(BlockStatus.FREE.getValue());
                 }
@@ -152,7 +151,7 @@ public class DiskManager {
      * @param FAT 文件分配表的字节数组
      */
     private void writeFAT(byte[] FAT) {
-        try (RandomAccessFile raf = new RandomAccessFile(diskFile, "rw"))  {
+        try (RandomAccessFile raf = new RandomAccessFile(diskFile, "rw")) {
             raf.write(FAT);
             // 更新内存中的FAT
             this.FAT = readFAT();
@@ -190,7 +189,7 @@ public class DiskManager {
     public byte[] readBlock(int index) {
         try (RandomAccessFile raf = new RandomAccessFile(diskFile, "rw")) {
             // 检查索引是否合法
-            if (index == ROOT_DIR_POS ||index >= USER_AREA_START && index < DISK_SIZE) {
+            if (index == ROOT_DIR_POS || index >= USER_AREA_START && index < DISK_SIZE) {
                 byte[] data = new byte[BLOCK_SIZE];
                 raf.skipBytes(index * BLOCK_SIZE);
                 raf.read(data);
@@ -316,6 +315,7 @@ public class DiskManager {
         // 确保只损坏用户区域的完整磁盘块
         do {
             blockIndex = rand.nextInt(DISK_SIZE - USER_AREA_START) + USER_AREA_START;
+            System.out.println("blockIndex:" + blockIndex);
         } while (isBlockBad(blockIndex)); // 如果已经是坏块，则重新选择
 
         // 将选中的磁盘块标记为坏块
@@ -356,9 +356,10 @@ public class DiskManager {
 
     /**
      * 格式化普通磁盘块
+     *
      * @param newBlockIndex 新的磁盘块索引
      */
-    public void initBlock(int newBlockIndex){
+    public void initBlock(int newBlockIndex) {
         byte[] data = new byte[BLOCK_SIZE];
         Arrays.fill(data, (byte) 0);
         writeBlock(newBlockIndex, data);

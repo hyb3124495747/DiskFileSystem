@@ -110,4 +110,9 @@ public class DiskStatusController implements DiskStatusObserver {
             updateDiskStatus();
         }
     }
-} 
+    @FXML
+    public void handleRecoverBlock() {
+        diskManager.fixDisk();
+        updateDiskStatus();
+    }
+}
