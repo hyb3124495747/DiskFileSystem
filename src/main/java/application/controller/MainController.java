@@ -602,8 +602,14 @@ public class MainController {
             controller.setFileSystem(this.fileSystem); // Set the shared FileSystem instance
             controller.setReadOnly(readOnly);
             controller.setFileName(file.name);
-            
-            String content = fileSystem.readFile(currentPath + file.name, 100);
+
+            String content;
+            if(readOnly){
+                content = fileSystem.typeFile(currentPath + file.name);
+            }else{
+                content = fileSystem.readFile(currentPath + file.name, 100);
+            }
+
             controller.setContent(content, currentPath + file.name);
             
             Stage stage = new Stage();

@@ -53,6 +53,8 @@ public class DiskManager {
                     list.add(true);
                 } else if (BlockStatus.FREE.isEqual(read) ) {
                     list.add(false);
+                }else{
+                    list.add(false);
                 }
             }
             debug_printDisk();
@@ -316,6 +318,23 @@ public class DiskManager {
         do {
             blockIndex = rand.nextInt(DISK_SIZE - USER_AREA_START) + USER_AREA_START;
             System.out.println("blockIndex:" + blockIndex);
+
+            try (FileInputStream fis = new FileInputStream(diskFile)) {
+                int cnt = 0;
+                for (int i = 0; i < DISK_SIZE; i++) {
+                    int read = fis.read();
+                    if(read!=0){
+                        cnt++;
+                    }
+                }
+
+                if(cnt == DISK_SIZE){
+                    return;
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
         } while (isBlockBad(blockIndex)); // 如果已经是坏块，则重新选择
 
         // 将选中的磁盘块标记为坏块
