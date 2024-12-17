@@ -46,6 +46,11 @@ public class OFTableManager {
         return null;
     }
 
+    /**
+     * 提供根据路径寻找的版本，作用和上面一样
+     * @param filePath
+     * @return
+     */
     public OFTLE find(String filePath) {
         System.out.println(oftleList.size());
         for (OFTLE oftle : oftleList) {

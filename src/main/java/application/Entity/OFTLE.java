@@ -3,7 +3,7 @@ package application.Entity;
 import application.Manager.DiskManager;
 
 /**
- * 已打开文件表项类型定义
+ * 已打开文件表项
  */
 public class OFTLE {
     private String filePath; // 文件绝对路径名

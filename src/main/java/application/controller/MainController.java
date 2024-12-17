@@ -812,7 +812,7 @@ public class MainController {
         Alert confirmDialog = new Alert(Alert.AlertType.CONFIRMATION);
         confirmDialog.setTitle("确认删除");
         confirmDialog.setHeaderText(null);
-        confirmDialog.setContentText("确定要删除文件夹 " + file.name + " 及其所有内容吗？");
+        confirmDialog.setContentText("确定要删除文件夹 " + file.name + " 吗？");
 
         // 自定义确认对话框按钮
         Button okButton = (Button) confirmDialog.getDialogPane().lookupButton(ButtonType.OK);
