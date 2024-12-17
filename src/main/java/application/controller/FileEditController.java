@@ -15,15 +15,16 @@ import javafx.application.Platform;
 public class FileEditController {
     @FXML
     private TextArea contentArea;
-    
+
     @FXML
     private Button saveButton;
-    
+
     private boolean readOnly;
     private String fileName;
     private String fullPath;
     private FileSystem fileSystem;
     private Stage stage;
+    private int fileSize;
 
 //    public FileEditController() {
 //        this.fileSystem = new FileSystem();
@@ -37,31 +38,33 @@ public class FileEditController {
     public void initialize() {
         saveButton.setOnAction(event -> handleSave());
     }
-    
+
     public void setReadOnly(boolean readOnly) {
         this.readOnly = readOnly;
         contentArea.setEditable(!readOnly);
         saveButton.setVisible(!readOnly);
-        
+
         if (readOnly) {
-            contentArea.setStyle(contentArea.getStyle() + 
-                               "-fx-control-inner-background: #f8f9fa;");
+            contentArea.setStyle(contentArea.getStyle() +
+                    "-fx-control-inner-background: #f8f9fa;");
         }
     }
-    
+
     public void setFileName(String fileName) {
         this.fileName = fileName;
     }
-    
+
     public void setContent(String content, String fullPath) {
         this.fullPath = fullPath;
         contentArea.setText(content);
-        
+        fileSize = content.length();
+        System.out.println("展示文件大小: " + fileSize);
+
         Platform.runLater(() -> {
             if (stage == null) {
                 stage = (Stage) saveButton.getScene().getWindow();
             }
-            
+
             stage.setOnCloseRequest(event -> {
                 if (this.fullPath != null) {
                     String result = fileSystem.closeFile(this.fullPath);
@@ -76,9 +79,18 @@ public class FileEditController {
             });
         });
     }
-    
+
     private void handleSave() {
         String content = contentArea.getText();
+        int alertSize = content.length();
+        boolean isTotalFile = false;
+        if (alertSize >= fileSize) {
+            content = content.substring(fileSize);
+            System.out.println("修改文件大小: " + content.length());
+        }
+        else {
+            isTotalFile = true;
+        }
         byte[] contentBytes = content.getBytes();
 
         String result = fileSystem.closeFile(fullPath);
@@ -90,7 +102,7 @@ public class FileEditController {
             alert.showAndWait();
             return;
         }
-        result = fileSystem.writeFile(fullPath, contentBytes, contentBytes.length, true);
+        result = fileSystem.writeFile(fullPath, contentBytes, contentBytes.length, isTotalFile);
 
         if (result.equals("1")) {
             if (fullPath != null) {
