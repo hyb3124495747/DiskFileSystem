@@ -9,8 +9,8 @@
 <?import javafx.scene.image.ImageView?>
 <?import javafx.scene.image.Image?>
 
-<VBox spacing="15.0" xmlns:fx="http://javafx.com/fxml/1" 
-      xmlns="http://javafx.com/javafx/8" 
+<VBox spacing="15.0" xmlns:fx="http://javafx.com/fxml/1"
+      xmlns="http://javafx.com/javafx/8"
       fx:controller="application.controller.MainController"
       style="-fx-background-color: #f8f9fa;">
     <padding>
@@ -18,21 +18,21 @@
     </padding>
     <children>
         <!-- 顶部导航栏 -->
-        <HBox spacing="10.0" alignment="CENTER_LEFT" 
+        <HBox spacing="10.0" alignment="CENTER_LEFT"
               style="-fx-background-color: white; 
                      -fx-padding: 10 15; 
                      -fx-background-radius: 8;
                      -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.05), 5, 0, 0, 1);">
             <!-- 路径显示框 -->
-            <TextField fx:id="pathField" editable="false" HBox.hgrow="ALWAYS" 
+            <TextField fx:id="pathField"  HBox.hgrow="ALWAYS"  onKeyPressed="#handleEnterPath"
                       style="-fx-background-color: #f8f9fa;
                              -fx-font-size: 14px;
                              -fx-text-fill: #495057;
                              -fx-background-radius: 4;
                              -fx-padding: 7 10;"/>
             <!-- 返回上级按钮 -->
-            <Button onAction="#handleUpDirectory" 
-                    style="-fx-background-color: #4CAF50; 
+            <Button onAction="#handleUpDirectory"
+                    style="-fx-background-color: #FFFFFF;
                            -fx-text-fill: white; 
                            -fx-background-radius: 4;
                            -fx-padding: 7;
@@ -46,10 +46,27 @@
                     </ImageView>
                 </graphic>
             </Button>
+
+            <!-- 返回上级按钮 -->
+            <Button onAction="#handleGoToDirectory"
+                    style="-fx-background-color: #FFFFFF;
+                           -fx-text-fill: white;
+                           -fx-background-radius: 4;
+                           -fx-padding: 7;
+                           -fx-cursor: hand;
+                           -fx-min-width: 32;
+                           -fx-min-height: 32;
+                           -fx-effect: dropshadow(three-pass-box, rgba(76,175,80,0.3), 3, 0, 0, 1);">
+                <graphic>
+                    <ImageView fitHeight="16.0" fitWidth="16.0">
+                        <Image url="@../image/forward-arrow.png"/>
+                    </ImageView>
+                </graphic>
+            </Button>
         </HBox>
-        
+
         <!-- 内容区域 -->
-        <AnchorPane fx:id="contentArea" VBox.vgrow="ALWAYS" 
+        <AnchorPane fx:id="contentArea" VBox.vgrow="ALWAYS"
                     style="-fx-background-color: white; 
                            -fx-background-radius: 8; 
                            -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.08), 8, 0, 0, 1);

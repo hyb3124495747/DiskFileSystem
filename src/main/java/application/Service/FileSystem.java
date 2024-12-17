@@ -298,7 +298,7 @@ public class FileSystem {// 目录项操作类
                 curPath += dirName + "/";
                 // 检查目录是否存在
                 try {
-                    if (dirOperator.isDirExist(curPath)) {
+                    if (!dirOperator.isDirExist(curPath)) {
                         return "ERROR: Invalid directory path.";
                     }
                 } catch (Exception e) {

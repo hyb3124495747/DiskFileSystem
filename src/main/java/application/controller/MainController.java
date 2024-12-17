@@ -3,17 +3,20 @@ package application.controller;
 import application.Enum.EntryAttribute;
 import application.Service.FileSystem;
 import javafx.application.Platform;
+import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.geometry.Rectangle2D;
+import javafx.scene.Cursor;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.input.KeyCode;
 import javafx.scene.input.MouseButton;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.TilePane;
@@ -83,6 +86,16 @@ public class MainController {
 
             contentArea.requestFocus();
         });
+
+        // 添加路径输入框的回车键事件监听器
+        pathField.setOnKeyPressed(event -> {
+            if (event.getCode() == KeyCode.ENTER) {
+                handleEnterPath();
+                updatePathField();
+                refreshFileView();
+                contentArea.requestFocus();
+            }
+        });
     }
 
     /**
@@ -118,6 +131,30 @@ public class MainController {
                 item.setStyle("-fx-text-fill: #333333; -fx-padding: 5 15;");
             }
         }
+    }
+
+    /**
+     * 处理用户输入的路径
+     */
+    @FXML
+    private boolean handleEnterPath() {
+        String newPath = pathField.getText();
+        if (newPath != null && !newPath.isEmpty()) {
+            String result = fileSystem.enterAnyDir(newPath);
+            if (result == null) {
+                currentPath = newPath;
+            } else {
+                showCustomAlert("错误", "导航失败", result, Alert.AlertType.ERROR);
+                return false;
+            }
+        } else {
+            currentPath = "/";
+        }
+
+        // 格式化currentPath
+        String[] components = currentPath.split("/");
+        currentPath = String.join("/", components) + "/";
+        return true;
     }
 
     /**
@@ -221,11 +258,10 @@ public class MainController {
             if (currentPath.isEmpty()) {
                 currentPath = "/";
             }
-
-            updatePathField();
-            // 刷新界面
-            refreshFileView();
         }
+        updatePathField();
+        // 刷新界面
+        refreshFileView();
     }
 
     /**
@@ -269,9 +305,6 @@ public class MainController {
                 fileName = sb.toString();
             }
 
-            // 如果fileName前含有../，则返回上一级路径
-
-            String s = currentPath;
             // 构建完整路径，使用 Unix 风格的路径
             String fullPath = handleRelativePath(fileName); // 直接使用 Unix 风格的路径
 
@@ -555,6 +588,17 @@ public class MainController {
         });
     }
 
+    /**
+     * 跳转目录
+     * @param actionEvent
+     */
+    public void handleGoToDirectory(ActionEvent actionEvent) {
+        handleEnterPath();
+        updatePathField();
+        refreshFileView();
+        contentArea.requestFocus();
+    }
+
     // 文件类
     private static class TestFile {
         String name;
@@ -575,7 +619,7 @@ public class MainController {
 
         // 创建图标
         ImageView icon = new ImageView(new Image(
-                getClass().getResourceAsStream(file.isDirectory ? "/image/floder.png" : "/image/file.png")
+                getClass().getResourceAsStream(file.isDirectory ? "/image/folder.png" : "/image/file.png")
         ));
         icon.setFitWidth(48);
         icon.setFitHeight(48);
