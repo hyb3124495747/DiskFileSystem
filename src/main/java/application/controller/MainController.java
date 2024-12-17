@@ -24,7 +24,9 @@ import javafx.stage.Screen;
 import javafx.stage.Stage;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -36,15 +38,15 @@ public class MainController {
     private FileSystem fileSystem;
 
     private DiskStatusObserver diskStatusObserver;
-    
+
     @FXML
     private TextField pathField;
-    
+
     @FXML
     private AnchorPane contentArea;
-    
+
     private String currentPath = "/";
-    
+
     private ContextMenu contextMenu;
     private ContextMenu fileContextMenu;
     private ContextMenu directoryContextMenu;
@@ -57,15 +59,15 @@ public class MainController {
         setupContextMenu();
         setupFileContextMenu();
         setupDirectoryContextMenu();
-        
+
         // 添加这行，直接刷新显示实际文件系统内容
         refreshFileView();
-        
+
         Platform.runLater(() -> {
             // 获取窗口并设置标题
             Stage stage = (Stage) contentArea.getScene().getWindow();
             stage.setTitle("文件系统");
-            
+
             // 固定窗口大小
             stage.setResizable(false);
 
@@ -73,12 +75,12 @@ public class MainController {
             Rectangle2D screenBounds = Screen.getPrimary().getVisualBounds();
             stage.setX((screenBounds.getWidth() - stage.getWidth()) / 2);
             stage.setY((screenBounds.getHeight() - stage.getHeight()) / 2);
-            
+
             // 添加样式表
             stage.getScene().getStylesheets().add(
-                getClass().getResource("/css/fileSystem.css").toExternalForm()
+                    getClass().getResource("/css/fileSystem.css").toExternalForm()
             );
-            
+
             contentArea.requestFocus();
         });
     }
@@ -88,28 +90,28 @@ public class MainController {
      */
     private void setupContextMenu() {
         contextMenu = new ContextMenu();
-        
+
         MenuItem createFileItem = new MenuItem("创建文件");
         createFileItem.setOnAction(event -> handleCreateFile());
         createFileItem.setStyle("-fx-padding: 5 15;");
-        
+
         MenuItem createDirItem = new MenuItem("创建文件夹");
         createDirItem.setOnAction(event -> handleCreateDirectory());
         createDirItem.setStyle("-fx-padding: 5 15;");
-        
+
         // 添加分隔线
         SeparatorMenuItem separator = new SeparatorMenuItem();
-        
+
         contextMenu.getItems().addAll(createFileItem, separator, createDirItem);
-        
+
         // 设置菜单样式
         String style = "-fx-background-color: white; " +
-                      "-fx-background-radius: 5; " +
-                      "-fx-padding: 5; " +
-                      "-fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 10, 0, 0, 0);";
-                      
+                "-fx-background-radius: 5; " +
+                "-fx-padding: 5; " +
+                "-fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 10, 0, 0, 0);";
+
         contextMenu.setStyle(style);
-        
+
         // 设置菜单项样式
         for (MenuItem item : contextMenu.getItems()) {
             if (!(item instanceof SeparatorMenuItem)) {
@@ -123,40 +125,40 @@ public class MainController {
      */
     private void setupFileContextMenu() {
         fileContextMenu = new ContextMenu();
-        
+
         MenuItem openItem = new MenuItem("打开");
         openItem.setStyle("-fx-padding: 5 15;");
-        
+
         MenuItem readOnlyItem = new MenuItem("只读打开");
         readOnlyItem.setStyle("-fx-padding: 5 15;");
-        
+
         MenuItem propertiesItem = new MenuItem("修改属性");
         propertiesItem.setStyle("-fx-padding: 5 15;");
-        
+
         MenuItem renameItem = new MenuItem("重命名");
         renameItem.setStyle("-fx-padding: 5 15;");
-        
+
         MenuItem deleteItem = new MenuItem("删除");
         deleteItem.setStyle("-fx-padding: 5 15;");
-        
+
         // 添加分隔线
         SeparatorMenuItem separator1 = new SeparatorMenuItem();
         SeparatorMenuItem separator2 = new SeparatorMenuItem();
         SeparatorMenuItem separator3 = new SeparatorMenuItem();
-        
+
         fileContextMenu.getItems().addAll(
-            openItem, readOnlyItem, separator1,
-            propertiesItem, separator2,
-            renameItem, separator3,
-            deleteItem
+                openItem, readOnlyItem, separator1,
+                propertiesItem, separator2,
+                renameItem, separator3,
+                deleteItem
         );
-        
+
         // 设置菜单样式
         fileContextMenu.setStyle("-fx-background-color: white; " +
-                               "-fx-background-radius: 5; " +
-                               "-fx-padding: 5; " +
-                               "-fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 10, 0, 0, 0);");
-        
+                "-fx-background-radius: 5; " +
+                "-fx-padding: 5; " +
+                "-fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 10, 0, 0, 0);");
+
         // 设置菜单项样式
         for (MenuItem item : fileContextMenu.getItems()) {
             if (!(item instanceof SeparatorMenuItem)) {
@@ -170,18 +172,18 @@ public class MainController {
      */
     private void setupDirectoryContextMenu() {
         directoryContextMenu = new ContextMenu();
-        
+
         MenuItem deleteItem = new MenuItem("删除");
         deleteItem.setStyle("-fx-padding: 5 15;");
-        
+
         directoryContextMenu.getItems().add(deleteItem);
-        
+
         // 设置菜单样式
         directoryContextMenu.setStyle("-fx-background-color: white; " +
-                                   "-fx-background-radius: 5; " +
-                                   "-fx-padding: 5; " +
-                                   "-fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 10, 0, 0, 0);");
-        
+                "-fx-background-radius: 5; " +
+                "-fx-padding: 5; " +
+                "-fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 10, 0, 0, 0);");
+
         // 设置菜单项样式
         for (MenuItem item : directoryContextMenu.getItems()) {
             item.setStyle("-fx-text-fill: #333333; -fx-padding: 5 15;");
@@ -208,22 +210,49 @@ public class MainController {
             // 如果当前路径是根目录的子目录
             if (lastSlash > 0) {
                 // 新路径为上级目录
-                currentPath = currentPath.substring(0, lastSlash+1);
+                currentPath = currentPath.substring(0, lastSlash + 1);
                 System.out.println(currentPath);
             } else {
                 // 如果没有找到斜杠，说明当前路径是根目录
                 currentPath = "/";
             }
-            
+
             // 确保返回的路径是根目录
             if (currentPath.isEmpty()) {
                 currentPath = "/";
             }
-            
+
             updatePathField();
             // 刷新界面
             refreshFileView();
         }
+    }
+
+    /**
+     * 处理相对路径，将包含 ../ 的路径转换为绝对路径
+     */
+    private String handleRelativePath(String path) {
+        String[] curParts = currentPath.split("/");
+        String[] userParts = path.split("/");
+        List<String> stack = new ArrayList<>();
+
+        for (String part : curParts) {
+            if (!part.isEmpty()) {
+                stack.add(part);
+            }
+        }
+
+        for (String part : userParts) {
+            if (part.equals("..")) {
+                if (!stack.isEmpty()) {
+                    stack.remove(stack.size() - 1);
+                }
+            } else if (!part.isEmpty() && !part.equals(".")) {
+                stack.add(part);
+            }
+        }
+
+        return String.join("/", stack);
     }
 
     /**
@@ -235,15 +264,16 @@ public class MainController {
             String[] str = fileName.split("\\.");
 
             StringBuilder sb = new StringBuilder(fileName);
-            if(str.length<2){
+            if (str.length < 2) {
                 sb.append(".tx");
                 fileName = sb.toString();
             }
 
+            // 如果fileName前含有../，则返回上一级路径
 
             String s = currentPath;
             // 构建完整路径，使用 Unix 风格的路径
-            String fullPath = s +fileName; // 直接使用 Unix 风格的路径
+            String fullPath = handleRelativePath(fileName); // 直接使用 Unix 风格的路径
 
             // 直接使用完整路径创建文件
             String result = fileSystem.createFile(fullPath, EntryAttribute.NORMAL_FILE.getValue());
@@ -255,10 +285,10 @@ public class MainController {
                 try {
                     int success = Integer.parseInt(result);
                     showCustomAlert(success == 1 ? "成功" : "错误",
-                                  success == 1 ? "文件创建成功!" : "文件创建失败!",
-                                  success == 1 ? null : "错误代码: " + success,
-                                  success == 1 ? Alert.AlertType.INFORMATION : Alert.AlertType.ERROR);
-                    
+                            success == 1 ? "文件创建成功!" : "文件创建失败!",
+                            success == 1 ? null : "错误代码: " + success,
+                            success == 1 ? Alert.AlertType.INFORMATION : Alert.AlertType.ERROR);
+
                     // 通知知磁盘状态更新并刷新视图
                     if (success == 1) {
                         System.out.println(111);
@@ -282,11 +312,11 @@ public class MainController {
         Dialog<String> dialog = createCustomDialog("创建文件夹", "请输入文件夹名称:");
         dialog.showAndWait().ifPresent(dirName -> {
             // 构建完整路径，使用 Unix 风格的路径
-            String fullPath = currentPath + dirName; // 直接使用 Unix 风格的路径
+            String fullPath = handleRelativePath(dirName); // 直接使用 Unix 风格的路径
 
             // 直接使用完整路径创建目录
             String result = fileSystem.createDir(fullPath, EntryAttribute.DIRECTORY.getValue());
-            
+
             // 检查返回值是否为错误消息
             if (result.startsWith("ERROR:")) {
                 showCustomAlert("错误", "文件夹创建失败", result, Alert.AlertType.ERROR);
@@ -294,10 +324,10 @@ public class MainController {
                 try {
                     int success = Integer.parseInt(result);
                     showCustomAlert(success == 1 ? "成功" : "错误",
-                                  success == 1 ? "文件夹创建成功!" : "文件夹创建失败!",
-                                  success == 1 ? null : "错误代码: " + success,
-                                  success == 1 ? Alert.AlertType.INFORMATION : Alert.AlertType.ERROR);
-                    
+                            success == 1 ? "文件夹创建成功!" : "文件夹创建失败!",
+                            success == 1 ? null : "错误代码: " + success,
+                            success == 1 ? Alert.AlertType.INFORMATION : Alert.AlertType.ERROR);
+
                     // 通知磁盘状态更新并刷新视图
                     if (success == 1) {
                         if (diskStatusObserver != null) {
@@ -315,7 +345,8 @@ public class MainController {
 
     /**
      * 提示对话框
-     * @param title 标签
+     *
+     * @param title      标签
      * @param headerText 头部标题
      * @return 对话框
      */
@@ -323,86 +354,87 @@ public class MainController {
         Dialog<String> dialog = new Dialog<>();
         dialog.setTitle(title);
         dialog.setHeaderText(null);
-        
+
         // 创建自定义内容面板，减小间距
         VBox content = new VBox(8);  // 减小间距从10到8
         content.setPadding(new Insets(15, 15, 10, 15));  // 减内边距
-        
+
         // 添加题标签
         Label titleLabel = new Label(headerText);
         titleLabel.setStyle("-fx-font-size: 14px; -fx-font-weight: bold;");
-        
+
         // 创建和设置输入框，减小宽度
         TextField input = new TextField();
         input.setPromptText("请输入名称");
         input.setPrefWidth(250);  // 300减小到250
         input.setStyle("-fx-padding: 6; -fx-background-radius: 3;");  // 减小padding从8到6
-        
+
         content.getChildren().addAll(titleLabel, input);
         dialog.getDialogPane().setContent(content);
-        
+
         // 设置按钮
         ButtonType confirmButtonType = new ButtonType("确定", ButtonBar.ButtonData.OK_DONE);
         ButtonType cancelButtonType = new ButtonType("取消", ButtonBar.ButtonData.CANCEL_CLOSE);
         dialog.getDialogPane().getButtonTypes().addAll(confirmButtonType, cancelButtonType);
-        
+
         // 获取并设置按钮样式，减小padding
         Button confirmButton = (Button) dialog.getDialogPane().lookupButton(confirmButtonType);
         confirmButton.setStyle("-fx-background-color: #2196F3; -fx-text-fill: white; " +
-                              "-fx-padding: 6 15; -fx-background-radius: 3;");
-        
+                "-fx-padding: 6 15; -fx-background-radius: 3;");
+
         Button cancelButton = (Button) dialog.getDialogPane().lookupButton(cancelButtonType);
         cancelButton.setStyle("-fx-padding: 6 15; -fx-background-radius: 3;");
-        
+
         // 设置对话框样式
         dialog.getDialogPane().setStyle("-fx-background-color: white; -fx-padding: 0;");
-        
+
         // 输入验证
         Node confirmButtonNode = dialog.getDialogPane().lookupButton(confirmButtonType);
         confirmButtonNode.setDisable(true);
-        
+
         input.textProperty().addListener((observable, oldValue, newValue) -> {
             confirmButtonNode.setDisable(newValue.trim().isEmpty());
         });
-        
+
         dialog.setResultConverter(dialogButton -> {
             if (dialogButton == confirmButtonType) {
                 return input.getText().trim();
             }
             return null;
         });
-        
+
         // 设置对话框小
-        dialog.getDialogPane().setPrefWidth(250);  
-        
+        dialog.getDialogPane().setPrefWidth(250);
+
         // 添加hover效果，同步修改padding
-        confirmButton.setOnMouseEntered(e -> 
-            confirmButton.setStyle("-fx-background-color: #1976D2; -fx-text-fill: white; " +
-                                 "-fx-padding: 6 15; -fx-background-radius: 3;"));
-        
-        confirmButton.setOnMouseExited(e -> 
-            confirmButton.setStyle("-fx-background-color: #2196F3; -fx-text-fill: white; " +
-                                 "-fx-padding: 6 15; -fx-background-radius: 3;"));
-        
+        confirmButton.setOnMouseEntered(e ->
+                confirmButton.setStyle("-fx-background-color: #1976D2; -fx-text-fill: white; " +
+                        "-fx-padding: 6 15; -fx-background-radius: 3;"));
+
+        confirmButton.setOnMouseExited(e ->
+                confirmButton.setStyle("-fx-background-color: #2196F3; -fx-text-fill: white; " +
+                        "-fx-padding: 6 15; -fx-background-radius: 3;"));
+
         return dialog;
     }
 
     /**
      * 成功或失败响应
-     * @param title 标题
-     * @param header 头
+     *
+     * @param title   标题
+     * @param header  头
      * @param content 内容
-     * @param type 类型
+     * @param type    类型
      */
     private void showCustomAlert(String title, String header, String content, Alert.AlertType type) {
         Alert alert = new Alert(type);
         alert.setTitle(title);
         alert.setHeaderText(null);  // 移除默认header
-        
+
         // 创建自定义内容面板
         VBox contentPane = new VBox(10);
         contentPane.setPadding(new Insets(15, 15, 5, 15));
-        
+
         // 添加图标
         ImageView icon = new ImageView();
         if (type == Alert.AlertType.INFORMATION) {
@@ -410,11 +442,11 @@ public class MainController {
         } else {
             icon.setStyle("-fx-text-fill: #F44336;");  // 错误时使用红色
         }
-        
+
         // 添加标题文本
         Label headerLabel = new Label(header);
         headerLabel.setStyle("-fx-font-size: 14px; -fx-font-weight: bold;");
-        
+
         // 如果有详细内容，添加容文本
         if (content != null) {
             Label contentLabel = new Label(content);
@@ -423,36 +455,36 @@ public class MainController {
         } else {
             contentPane.getChildren().add(headerLabel);
         }
-        
+
         alert.getDialogPane().setContent(contentPane);
-        
+
         // 设置对话框样式
         alert.getDialogPane().setStyle("-fx-background-color: white;");
         alert.getDialogPane().setPrefWidth(352);
-        
+
         // 获取并设置确定按钮样式
         Button okButton = (Button) alert.getDialogPane().lookupButton(ButtonType.OK);
         okButton.setStyle("-fx-background-color: " + (type == Alert.AlertType.INFORMATION ? "#4CAF50" : "#F44336") + ";" +
-                          "-fx-text-fill: white;" +
-                          "-fx-padding: 6 15;" +
-                          "-fx-background-radius: 3;");
-        
+                "-fx-text-fill: white;" +
+                "-fx-padding: 6 15;" +
+                "-fx-background-radius: 3;");
+
         // 添加hover效果
         String baseColor = type == Alert.AlertType.INFORMATION ? "#4CAF50" : "#F44336";
         String darkerColor = type == Alert.AlertType.INFORMATION ? "#388E3C" : "#D32F2F";
-        
-        okButton.setOnMouseEntered(e -> 
-            okButton.setStyle("-fx-background-color: " + darkerColor + ";" +
-                             "-fx-text-fill: white;" +
-                             "-fx-padding: 6 15;" +
-                             "-fx-background-radius: 3;"));
-        
-        okButton.setOnMouseExited(e -> 
-            okButton.setStyle("-fx-background-color: " + baseColor + ";" +
-                             "-fx-text-fill: white;" +
-                             "-fx-padding: 6 15;" +
-                             "-fx-background-radius: 3;"));
-        
+
+        okButton.setOnMouseEntered(e ->
+                okButton.setStyle("-fx-background-color: " + darkerColor + ";" +
+                        "-fx-text-fill: white;" +
+                        "-fx-padding: 6 15;" +
+                        "-fx-background-radius: 3;"));
+
+        okButton.setOnMouseExited(e ->
+                okButton.setStyle("-fx-background-color: " + baseColor + ";" +
+                        "-fx-text-fill: white;" +
+                        "-fx-padding: 6 15;" +
+                        "-fx-background-radius: 3;"));
+
         alert.showAndWait();
     }
 
@@ -467,17 +499,17 @@ public class MainController {
 
         // 清除当前内容
         contentArea.getChildren().clear();
-        
+
         // 创建新的TilePane
         TilePane filePane = new TilePane();
         filePane.setHgap(15);
         filePane.setVgap(15);
         filePane.setPrefColumns(5);
         filePane.setPadding(new Insets(10));
-        
+
         // 为filePane添加右键菜单
         setupFilePaneContextMenu(filePane);
-        
+
         // 获取当前目录的内容
         String path = currentPath.equals("/") ? "/" : currentPath; // 使用 Unix 风格的路径
 
@@ -490,7 +522,7 @@ public class MainController {
                 if (entry != null && entry.length >= 2) {
                     String name = entry[0];
                     boolean isDirectory = entry[1].equals(String.valueOf(EntryAttribute.DIRECTORY.getValue()));
-                    
+
                     VBox fileBox = createFileIcon(new TestFile(name, isDirectory));
                     filePane.getChildren().add(fileBox);
                 }
@@ -502,7 +534,7 @@ public class MainController {
         AnchorPane.setLeftAnchor(filePane, 0.0);
         AnchorPane.setRightAnchor(filePane, 0.0);
         AnchorPane.setBottomAnchor(filePane, 0.0);
-        
+
         contentArea.getChildren().add(filePane);
     }
 
@@ -514,7 +546,7 @@ public class MainController {
             }
             event.consume();
         });
-        
+
         filePane.setOnMouseClicked(event -> {
             if (event.getButton() == MouseButton.PRIMARY) {
                 if (contextMenu != null) contextMenu.hide();
@@ -543,7 +575,7 @@ public class MainController {
 
         // 创建图标
         ImageView icon = new ImageView(new Image(
-            getClass().getResourceAsStream(file.isDirectory ? "/image/floder.png" : "/image/file.png")
+                getClass().getResourceAsStream(file.isDirectory ? "/image/floder.png" : "/image/file.png")
         ));
         icon.setFitWidth(48);
         icon.setFitHeight(48);
@@ -590,7 +622,8 @@ public class MainController {
 
     /**
      * 处理文件打开
-     * @param file 文件
+     *
+     * @param file     文件
      * @param readOnly 是否只读
      */
     private void handleFileOpen(TestFile file, boolean readOnly) {
@@ -604,25 +637,25 @@ public class MainController {
             controller.setFileName(file.name);
 
             String content;
-            if(readOnly){
+            if (readOnly) {
                 content = fileSystem.typeFile(currentPath + file.name);
-            }else{
+            } else {
                 content = fileSystem.readFile(currentPath + file.name, 100);
             }
 
             controller.setContent(content, currentPath + file.name);
-            
+
             Stage stage = new Stage();
             stage.setTitle((readOnly ? "只读 - " : "") + file.name);
             stage.setScene(new Scene(root, 600, 400));
             stage.initModality(Modality.NONE);
-            
+
             Rectangle2D screenBounds = Screen.getPrimary().getVisualBounds();
             stage.setX((screenBounds.getWidth() - 600) / 2);
             stage.setY((screenBounds.getHeight() - 400) / 2);
-            
+
             stage.show();
-            
+
         } catch (IOException e) {
             e.printStackTrace();
             showCustomAlert("错误", "无法打开文件", e.getMessage(), Alert.AlertType.ERROR);
@@ -635,19 +668,19 @@ public class MainController {
         confirmDialog.setTitle("确认删除");
         confirmDialog.setHeaderText(null);
         confirmDialog.setContentText("确定要删除 " + file.name + " 吗？");
-        
+
         // 自定义确认对话框按钮
         Button okButton = (Button) confirmDialog.getDialogPane().lookupButton(ButtonType.OK);
         okButton.setText("删除");
         okButton.setStyle("-fx-background-color: #F44336; -fx-text-fill: white;");
-        
+
         Button cancelButton = (Button) confirmDialog.getDialogPane().lookupButton(ButtonType.CANCEL);
         cancelButton.setText("取消");
-        
+
         Optional<ButtonType> result = confirmDialog.showAndWait();
         if (result.isPresent() && result.get() == ButtonType.OK) {
             String s = "/";
-            if(!currentPath.equals("/")){
+            if (!currentPath.equals("/")) {
                 s = currentPath;
             }
             String fullPath = s + file.name;
@@ -672,55 +705,55 @@ public class MainController {
         Dialog<Byte> dialog = new Dialog<>();  // 改为Byte类型
         dialog.setTitle("修改文件属性");
         dialog.setHeaderText(null);
-        
+
         // 创建自定义内容面板
         VBox content = new VBox(10);
         content.setPadding(new Insets(15));
-        
+
         Label titleLabel = new Label("选择文件属性:");
         titleLabel.setStyle("-fx-font-size: 14px; -fx-font-weight: bold;");
-        
+
         ToggleGroup group = new ToggleGroup();
         RadioButton readWriteBtn = new RadioButton("读写");
         readWriteBtn.setToggleGroup(group);
         readWriteBtn.setSelected(true);
-        
+
         RadioButton readOnlyBtn = new RadioButton("只读");
         readOnlyBtn.setToggleGroup(group);
-        
+
         content.getChildren().addAll(titleLabel, readWriteBtn, readOnlyBtn);
         dialog.getDialogPane().setContent(content);
-        
+
         // 添加按钮
         ButtonType confirmButtonType = new ButtonType("确定", ButtonBar.ButtonData.OK_DONE);
         ButtonType cancelButtonType = new ButtonType("取消", ButtonBar.ButtonData.CANCEL_CLOSE);
         dialog.getDialogPane().getButtonTypes().addAll(confirmButtonType, cancelButtonType);
-        
+
         // 设置按钮样式
         Button confirmButton = (Button) dialog.getDialogPane().lookupButton(confirmButtonType);
         confirmButton.setStyle("-fx-background-color: #2196F3; -fx-text-fill: white; " +
-                              "-fx-padding: 6 15; -fx-background-radius: 3;");
-        
+                "-fx-padding: 6 15; -fx-background-radius: 3;");
+
         // 设置结果转换器
         dialog.setResultConverter(dialogButton -> {
             if (dialogButton == confirmButtonType) {
                 // 直接返回对应的属性值
-                return readOnlyBtn.isSelected() ? 
-                       EntryAttribute.READ_ONLY.getValue() : 
-                       EntryAttribute.NORMAL_FILE.getValue();
+                return readOnlyBtn.isSelected() ?
+                        EntryAttribute.READ_ONLY.getValue() :
+                        EntryAttribute.NORMAL_FILE.getValue();
             }
             return null;
         });
-        
+
         // 显示对话框并处理结果
         dialog.showAndWait().ifPresent(attribute -> {
 
             String s = currentPath;
             String fullPath = s + file.name;
-            
+
             // 直接使用byte属性值
             String result = fileSystem.changeFileAttribute(fullPath, attribute);
-            
+
             if (result.equals("1")) {
                 showCustomAlert("成功", "文件属性修改成功!", null, Alert.AlertType.INFORMATION);
                 refreshFileView();
@@ -736,20 +769,20 @@ public class MainController {
         confirmDialog.setTitle("确认删除");
         confirmDialog.setHeaderText(null);
         confirmDialog.setContentText("确定要删除文件夹 " + file.name + " 及其所有内容吗？");
-        
+
         // 自定义确认对话框按钮
         Button okButton = (Button) confirmDialog.getDialogPane().lookupButton(ButtonType.OK);
         okButton.setText("删除");
         okButton.setStyle("-fx-background-color: #F44336; -fx-text-fill: white;");
-        
+
         Button cancelButton = (Button) confirmDialog.getDialogPane().lookupButton(ButtonType.CANCEL);
         cancelButton.setText("取消");
-        
+
         Optional<ButtonType> result = confirmDialog.showAndWait();
         if (result.isPresent() && result.get() == ButtonType.OK) {
             String fullPath = currentPath + file.name;
             String deleteResult = fileSystem.removeDir(fullPath);
-            
+
             if (deleteResult.equals("1")) {
                 showCustomAlert("成功", "文件夹删除成功!", null, Alert.AlertType.INFORMATION);
                 if (diskStatusObserver != null) {
@@ -766,20 +799,20 @@ public class MainController {
     private void handleRename(TestFile file) {
         Dialog<String> dialog = createCustomDialog("重命名", "请输入新的名称:");
         dialog.getDialogPane().setPrefWidth(300);
-        
+
         // 获取输入框并设置当前文件名
         TextField input = (TextField) ((VBox) dialog.getDialogPane().getContent()).getChildren().get(1);
         input.setText(file.name);
         input.selectAll(); // 选中当前文件名以方便修改
-        
+
         dialog.showAndWait().ifPresent(newName -> {
             if (!newName.equals(file.name)) { // 只在名称确实改变时才进行重命名
                 String oldPath = currentPath + file.name;
                 String newPath = currentPath + newName;
-                
+
                 // 调用文件系统的重命名方法
                 String result = fileSystem.changeFileName(oldPath, newName);
-                
+
                 if (result.equals("1")) {
                     showCustomAlert("成功", "重命名成功!", null, Alert.AlertType.INFORMATION);
                     refreshFileView();
