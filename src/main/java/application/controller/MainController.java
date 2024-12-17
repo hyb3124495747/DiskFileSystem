@@ -428,7 +428,7 @@ public class MainController {
         
         // 设置对话框样式
         alert.getDialogPane().setStyle("-fx-background-color: white;");
-        alert.getDialogPane().setPrefWidth(250);
+        alert.getDialogPane().setPrefWidth(350);
         
         // 获取并设置确定按钮样式
         Button okButton = (Button) alert.getDialogPane().lookupButton(ButtonType.OK);
@@ -523,7 +523,7 @@ public class MainController {
         });
     }
 
-    // 测试文件类
+    // 文件类
     private static class TestFile {
         String name;
         boolean isDirectory;
