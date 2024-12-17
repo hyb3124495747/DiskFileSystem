@@ -89,13 +89,13 @@ public class FileSystem {// 目录项操作类
      * @param readLength       需要读取的长度（以字节为单位）
      * @return 读取的内容，如果文件不存在或无法读取，则返回错误信息
      */
-    public String readFile(String fileAbsolutePath, int readLength) {
+    public String readFile(String fileAbsolutePath, int readLength) throws Exception {
         try {
             // 调用文件操作类读取文件，并检查结果
             return fileOperator.readFile(fileAbsolutePath, readLength);
         } catch (Exception e) {
             Tools.logError("Error reading file: " + e.getMessage(), this.LOG_FILE_NAME); //输出错误信息到日志文件
-            throw new RuntimeException(e);
+            throw new Exception(e);
         }
     }
 

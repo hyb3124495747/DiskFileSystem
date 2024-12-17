@@ -9,7 +9,6 @@ import javafx.fxml.FXMLLoader;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.geometry.Rectangle2D;
-import javafx.scene.Cursor;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
@@ -26,7 +25,6 @@ import javafx.stage.Modality;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -676,11 +674,21 @@ public class MainController {
             Parent root = loader.load();
 
             FileEditController controller = loader.getController();
-            controller.setFileSystem(this.fileSystem); // Set the shared FileSystem instance
+            controller.setFileSystem(this.fileSystem);
             controller.setReadOnly(readOnly);
             controller.setFileName(file.name);
 
-            String content;
+            String[] fileInfo = fileSystem.getFileInfo(currentPath + file.name);
+
+            String s = fileInfo[6];
+
+            System.out.println("文件属性"+s);
+            if(s.equals("1") && !readOnly){
+                showCustomAlert("错误", "打开方式错误", "文件不能以此方式打开", Alert.AlertType.ERROR);
+                return;
+            }
+
+            String content =  null;
             if (readOnly) {
                 content = fileSystem.typeFile(currentPath + file.name);
             } else {
@@ -700,9 +708,9 @@ public class MainController {
 
             stage.show();
 
-        } catch (IOException e) {
-            e.printStackTrace();
-            showCustomAlert("错误", "无法打开文件", e.getMessage(), Alert.AlertType.ERROR);
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+            showCustomAlert("错误", "无法打开文件", e.getMessage().substring(21), Alert.AlertType.ERROR);
         }
     }
 
