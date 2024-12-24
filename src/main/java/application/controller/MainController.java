@@ -265,9 +265,9 @@ public class MainController {
     /**
      * 处理相对路径，将包含 ../ 的路径转换为绝对路径
      */
-    private String handleRelativePath(String path) {
+    private String handleRelativePath(String inputPath) {
         String[] curParts = currentPath.split("/");
-        String[] userParts = path.split("/");
+        String[] userParts = inputPath.split("/");
         List<String> stack = new ArrayList<>();
 
         for (String part : curParts) {

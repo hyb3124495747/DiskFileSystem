@@ -8,8 +8,8 @@ import java.util.ArrayList;
  * 已打开文件（登记表）管理器
  */
 public class OFTableManager {
-    private final ArrayList<OFTLE> oftleList;
-    private static final int maxLength = 5;
+    private final ArrayList<OFTLE> oftleList; // 已打开文件表
+    private static final int maxLength = 5; // 最大长度
 
     public OFTableManager() {
         this.oftleList = new ArrayList<>();

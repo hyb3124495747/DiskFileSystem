@@ -20,7 +20,7 @@ public class DiskManager {
     public static final int USER_AREA_START = 5; // 用户区域起始块号，0到4号磁盘包括了FAT（0、1）、根目录项、系统文件区
 
     private static final File diskFile = new File("disk.dat"); // 磁盘文件
-    private byte[] FAT; //内存中保存的FAT表
+    private byte[] FAT; //模拟内存中保存的FAT表
 
     public void debug_printDisk() {
         try (FileInputStream fis = new FileInputStream(diskFile)) {

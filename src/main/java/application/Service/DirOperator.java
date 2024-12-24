@@ -12,10 +12,7 @@ import java.util.Arrays;
  * 目录操作类，包括建立目录、列目录、删除空目录
  */
 public class DirOperator {
-    private static final byte Empty = (byte) '$'; // 目录空标志
-
     private final EntryOperator entryOperator; // 目录项操作
-
 
     public DirOperator(EntryOperator entryOperator) {
         this.entryOperator = entryOperator;

@@ -241,7 +241,6 @@ public class FileOperator {
      * @return 关闭成功返回 1
      */
     public int closeFile(String fileAbsolutePath) throws Exception {
-        System.out.println("--------" + this.ofTableManager.getOftleList().size());
         // 获取父目录盘块号和文件名，以检查父目录是否存在
         String[] fileInfo = getFileInfo(fileAbsolutePath);
         String fileNameOnly = fileInfo[0];
@@ -260,7 +259,6 @@ public class FileOperator {
         } // 文件不存在
 
         // 文件未打开
-        System.out.println("--------" + this.ofTableManager.getOftleList().size());
         OFTLE targetOftle = ofTableManager.find(fileAbsolutePath);
         if (targetOftle == null) return 1;
 
