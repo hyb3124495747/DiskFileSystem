@@ -28,4 +28,4 @@ Scau文件管理系统
     - 作用：处理用户输入，调用FileSystem的方法，并返回结果。
     - 解耦合：Controller 层作为用户界面和后端逻辑之间的桥梁，它不包含业务逻辑，而是调用 Service 层的方法。
   
-![struct]("docs/struct.png")
+![struct](docs/struct.png)
