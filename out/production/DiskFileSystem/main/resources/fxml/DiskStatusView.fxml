@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.ProgressBar?>
+<?import javafx.scene.layout.TilePane?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.layout.HBox?>
+
+<VBox spacing="15.0" style="-fx-background-color: white;" 
+      xmlns:fx="http://javafx.com/fxml/1" xmlns="http://javafx.com/javafx/8"
+      fx:controller="application.controller.DiskStatusController">
+    <padding>
+        <Insets top="20" right="20" bottom="20" left="20"/>
+    </padding>
+    
+    <GridPane vgap="10" hgap="10">
+        <Label text="总容量：" GridPane.columnIndex="0" GridPane.rowIndex="0"/>
+        <Label fx:id="totalCapacityLabel" GridPane.columnIndex="1" GridPane.rowIndex="0"/>
+        
+        <Label text="已使用：" GridPane.columnIndex="0" GridPane.rowIndex="1"/>
+        <Label fx:id="usedCapacityLabel" GridPane.columnIndex="1" GridPane.rowIndex="1"/>
+        
+        <Label text="可用空间：" GridPane.columnIndex="0" GridPane.rowIndex="2"/>
+        <Label fx:id="freeSpaceLabel" GridPane.columnIndex="1" GridPane.rowIndex="2"/>
+        
+        <Label text="使用率：" GridPane.columnIndex="0" GridPane.rowIndex="3"/>
+        <ProgressBar fx:id="usageProgressBar" progress="0.0" 
+                     style="-fx-accent: #4CAF50; -fx-control-inner-background: #E0E0E0;"
+                     prefWidth="200"
+                     GridPane.columnIndex="1" GridPane.rowIndex="3"/>
+    </GridPane>
+    
+    <HBox spacing="10">
+        <Label text="磁盘块使用情况：" style="-fx-font-size: 14px; -fx-font-weight: bold;"/>
+        <Button text="随机损坏磁盘块" onAction="#handleMarkDamagedBlock" />
+        <Button text="恢复磁盘块" onAction="#handleRecoverBlock" />
+    </HBox>
+    <TilePane fx:id="blockPane" hgap="2" vgap="2" prefColumns="16"/>
+</VBox> 
