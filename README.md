@@ -5,7 +5,10 @@ Scau文件管理系统
 
 
 #### 使用说明
-- 运行 src/main/java/application/Main.java
+启动:
+jdk1.8的环境下，在命令行运行jar包（java -jar ./ DISKFILESYSTEM.jar）或者在源代码目录中启动src/main/java/application/Main.java，
+同时在目录下会生成模拟磁盘文件disk.dat（可进行持久化存储，保存系统当前状态）和用于记录意料之外错误的日志文件log.txt。
+
 
 #### 软件架构
 ###### 设计了分层的软件架构，其中每一层都向上层提供服务，同时依赖于下层的实现。
